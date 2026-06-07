@@ -9,7 +9,7 @@ import taichi as ti
 class Geometry(ABC):
     def __init__(
         self,
-        velocity: Tuple[float, float],
+        velocity: Tuple[float, float, float],
         frame_threshold: int,
         temperature: float,
         material: Material,
@@ -30,7 +30,7 @@ class Geometry(ABC):
         self.material = material
 
     @abstractmethod
-    def in_bounds(self, x: float, y: float) -> bool:
+    def in_bounds(self, x: float, y: float, z: float) -> bool:
         pass
 
     @abstractmethod
@@ -41,8 +41,8 @@ class Geometry(ABC):
 class Circle(Geometry):
     def __init__(
         self,
-        velocity: Tuple[float, float],
-        center: Tuple[float, float],
+        velocity: Tuple[float, float, float],
+        center: Tuple[float, float, float],
         material: Material,
         radius: float,
         temperature: float = 0.0,
@@ -50,46 +50,53 @@ class Circle(Geometry):
         is_continuous: bool = False,
     ) -> None:
         super().__init__(velocity, frame_threshold, temperature, material, is_continuous)
-        self.x, self.y = list(center)
+        self.x, self.y, self.z = list(center)
         self.squared_radius = radius * radius
         self.radius = radius
 
     @ti.func
-    def in_bounds(self, x: float, y: float) -> bool:
-        return (self.x - x) ** 2 + (self.y - y) ** 2 <= self.squared_radius
+    def in_bounds(self, x: float, y: float, z: float) -> bool:
+        return ((self.x - x) ** 2) + ((self.y - y) ** 2) + ((self.z - z) ** 2) <= self.squared_radius
 
     @ti.func
     def random_seed(self) -> ti.Vector:
         r = self.radius * ti.math.sqrt(ti.random())
-        t = 2 * ti.math.pi * ti.random()
-        x = (r * ti.sin(t)) + self.x
-        y = (r * ti.cos(t)) + self.y
-        return ti.Vector([x, y])
+        t = 2 * ti.math.pi * ti.random() # theta
+        p = 2 * ti.math.pi * ti.random() # phi
+        x = (r * ti.sin(t) * ti.cos(p)) + self.x
+        y = (r * ti.sin(t) * ti.sin(p)) + self.y
+        z = (r * ti.cos(t)) + self.z
+        return ti.Vector([x, y, z])
 
 
 class Rectangle(Geometry):
     def __init__(
         self,
-        lower_left: Tuple[float, float],
-        velocity: Tuple[float, float],
-        size: Tuple[float, float],
+        lower_left: Tuple[float, float, float],
+        velocity: Tuple[float, float, float],
+        size: Tuple[float, float, float],
         material: Material,
         temperature: float = 0.0,
         frame_threshold: int = 0,
         is_continuous: bool = False,
     ) -> None:
         super().__init__(velocity, frame_threshold, temperature, material, is_continuous)
-        self.width, self.height = size
-        self.x, self.y = lower_left
-        self.r_bound = self.x + self.width
-        self.t_bound = self.y + self.height
+        self.width, self.height, self.depth = size
+        self.x, self.y, self.z = lower_left
+        self.r_bound = self.x + self.width  # right boundary
+        self.t_bound = self.y + self.height  # top boundary
+        self.b_bound = self.z + self.depth  # back boundary
 
     @ti.func
-    def in_bounds(self, x: float, y: float) -> bool:
-        return self.x <= x <= self.r_bound and self.y <= y <= self.t_bound
+    def in_bounds(self, x: float, y: float, z: float) -> bool:
+        _in_bounds = self.x <= x <= self.r_bound
+        _in_bounds &= self.y <= y <= self.t_bound
+        _in_bounds &= self.z <= z <= self.b_bound
+        return _in_bounds
 
     @ti.func
     def random_seed(self) -> ti.Vector:
         x = self.x + ti.random() * self.width
         y = self.y + ti.random() * self.height
-        return ti.Vector([x, y])
+        z = self.z + ti.random() * self.depth
+        return ti.Vector([x, y, z])

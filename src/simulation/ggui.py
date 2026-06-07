@@ -48,6 +48,15 @@ class GGUI_Simulation(BaseSimulation):
         self.canvas = self.window.get_canvas()
         self.gui = self.window.get_gui()
 
+        self.scene = self.window.get_scene()
+        self.camera = ti.ui.Camera()
+        self.camera.position(0.5, 1.0, 1.25)
+        self.camera.lookat(0.5, 0.3, 0.5)
+        # self.camera.up(0, 1, 0)
+        self.camera.fov(70)
+        # self.camera.projection_mode(ti.ui.ProjectionMode.Perspective)
+        self.scene.set_camera(self.camera)
+
         # Fields that hold certain colors, must be update in each draw call.
         self.temperature_colors_p = ti.Vector.field(3, dtype=ti.f32, shape=self.solver.max_particles)
         # TODO: also move the phase colors here, then only update the phase colors when drawing the phase?!
@@ -67,15 +76,15 @@ class GGUI_Simulation(BaseSimulation):
 
         # Foreground Options:
         self.foreground_options = [
-            DrawingOption("Temperature", False, self.draw_temperature_p),
-            DrawingOption("Background", False, lambda: None),
+            # DrawingOption("Temperature", False, self.draw_temperature_p),
+            # DrawingOption("Background", False, lambda: None),
             DrawingOption("Phase", True, self.draw_phase_p),
         ]
 
         # Background Options:
         self.background_options = [
-            DrawingOption("Classification", False, lambda: self.show_contour(self.solver.classification_c)),
-            DrawingOption("Temperature", False, lambda: self.show_contour(self.solver.temperature_c)),
+            # DrawingOption("Classification", False, lambda: self.show_contour(self.solver.classification_c)),
+            # DrawingOption("Temperature", False, lambda: self.show_contour(self.solver.temperature_c)),
             DrawingOption("Background", True, lambda: self.canvas.set_background_color(ColorRGB.Background)),
         ]
 
@@ -252,10 +261,15 @@ class GGUI_Simulation(BaseSimulation):
         """
         Draw the phase for each particle.
         """
-        self.canvas.circles(
+        # self.canvas.circles(
+        #     per_vertex_color=self.solver.color_p,
+        #     centers=self.solver.position_p,
+        #     radius=self.radius,
+        # )
+        self.scene.particles(
             per_vertex_color=self.solver.color_p,
             centers=self.solver.position_p,
-            radius=self.radius,
+            radius=self.radius
         )
 
     @ti.kernel
@@ -283,6 +297,12 @@ class GGUI_Simulation(BaseSimulation):
         if self.should_write_to_disk and not self.is_paused and not self.is_showing_settings:
             self.video_manager.write_frame(self.window.get_image_buffer_as_numpy())
 
+        self.camera.track_user_inputs(self.window, movement_speed=0.03, hold_key=ti.ui.RMB)
+        self.scene.point_light(pos=(0.5, 1.5, 0.5), color=(0.5, 0.5, 0.5))
+        self.scene.point_light(pos=(0.5, 1.5, 1.5), color=(0.5, 0.5, 0.5))
+        self.scene.set_camera(self.camera)
+        self.scene.ambient_light((1.0, 1.0, 1.0))
+        self.canvas.scene(self.scene) # NOTE: 3D
         self.window.show()
 
     def run(self) -> None:

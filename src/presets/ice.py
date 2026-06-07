@@ -10,8 +10,8 @@ ice_presets = [
         geometries=[
             Circle(
                 material=Ice,  # pyright: ignore
-                center=(0.5, 0.4),
-                velocity=(0, -3),
+                center=(0.5, 0.4, 0.5),
+                velocity=(0, -3, 0),
                 temperature=-100.0,
                 radius=0.1,
             ),
@@ -24,9 +24,9 @@ ice_presets = [
         geometries=[
             Rectangle(
                 material=Ice,  # pyright: ignore
-                size=(0.15, 0.15),
-                velocity=(0, 0),
-                lower_left=(0.425, 0.425),
+                size=(0.15, 0.15, 0.15),
+                velocity=(0, 0, 0),
+                lower_left=(0.425, 0.425, 0.425),
                 temperature=-10.0,
             )
         ],

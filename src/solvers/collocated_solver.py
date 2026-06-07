@@ -7,9 +7,10 @@ import taichi as ti
 
 @ti.data_oriented
 class CollocatedSolver(ABC):
-    def __init__(self, max_particles: int, n_grid: int, vol_0: float):
+    def __init__(self, max_particles: int, n_dimensions: int, n_grid: int, vol_0: float):
         self.max_particles = max_particles
         self.inv_dx = float(n_grid)
+        self.d = n_dimensions
         self.n_grid = n_grid
         self.dx = 1 / n_grid
         self.vol_0_p = vol_0
@@ -17,8 +18,14 @@ class CollocatedSolver(ABC):
         # The width of the simulation boundary in grid nodes and offsets to
         # guarantee that seeded particles always lie within the boundary:
         self.boundary_width = 3
-        self.w_grid = self.n_grid + self.boundary_width + self.boundary_width
-        self.w_offset = (-self.boundary_width, -self.boundary_width)
+        self.wx = self.n_grid + self.boundary_width + self.boundary_width
+        self.wy = self.wx
+        self.wz = 0 if self.d == 0 else self.wx
+        self.w_offset = (-self.boundary_width, -self.boundary_width, -self.boundary_width)
+        # if self.d == 2:
+        #     self.w_offset = (-self.boundary_width, -self.boundary_width)
+        # else:
+        #     self.w_offset = (-self.boundary_width, -self.boundary_width, -self.boundary_width)
         self.negative_boundary = -self.boundary_width
         self.positive_boundary = self.n_grid + self.boundary_width
 
@@ -30,71 +37,82 @@ class CollocatedSolver(ABC):
         self.dt = ti.field(dtype=ti.f32, shape=())
 
         # Properties on cell centers:
-        self.classification_c = ti.field(dtype=ti.i32, shape=(self.w_grid, self.w_grid), offset=self.w_offset)
-        self.temperature_c = ti.field(dtype=ti.f32, shape=(self.w_grid, self.w_grid), offset=self.w_offset)
-        self.velocity_c = ti.Vector.field(2, dtype=ti.f32, shape=(self.w_grid, self.w_grid), offset=self.w_offset)
-        self.mass_c = ti.field(dtype=ti.f32, shape=(self.w_grid, self.w_grid), offset=self.w_offset)
+        if self.d == 2:
+            self.classification_c = ti.field(dtype=ti.i32, shape=(self.wx, self.wy), offset=self.w_offset)
+            self.temperature_c = ti.field(dtype=ti.f32, shape=(self.wx, self.wy), offset=self.w_offset)
+            self.velocity_c = ti.Vector.field(self.d, dtype=ti.f32, shape=(self.wx, self.wy), offset=self.w_offset)
+            self.mass_c = ti.field(dtype=ti.f32, shape=(self.wx, self.wy), offset=self.w_offset)
+        else:
+            self.classification_c = ti.field(dtype=ti.i32, shape=(self.wx, self.wy, self.wz), offset=self.w_offset)
+            self.temperature_c = ti.field(dtype=ti.f32, shape=(self.wx, self.wy, self.wz), offset=self.w_offset)
+            self.velocity_c = ti.Vector.field(
+                self.d, dtype=ti.f32, shape=(self.wx, self.wy, self.wz), offset=self.w_offset
+            )
+            self.mass_c = ti.field(dtype=ti.f32, shape=(self.wx, self.wy, self.wz), offset=self.w_offset)
 
         # Properties on particles:
         self.temperature_p = ti.field(dtype=ti.f32, shape=max_particles)
-        self.velocity_p = ti.Vector.field(2, dtype=ti.f32, shape=max_particles)
-        self.position_p = ti.Vector.field(2, dtype=ti.f32, shape=max_particles)
+        self.velocity_p = ti.Vector.field(self.d, dtype=ti.f32, shape=max_particles)
+        self.position_p = ti.Vector.field(self.d, dtype=ti.f32, shape=max_particles)
         self.color_p = ti.Vector.field(3, dtype=ti.f32, shape=max_particles)
         self.state_p = ti.field(dtype=ti.f32, shape=max_particles)
         self.phase_p = ti.field(dtype=ti.f32, shape=max_particles)
         self.mass_p = ti.field(dtype=ti.f32, shape=max_particles)
 
     @ti.func
-    def is_valid(self, i: int, j: int) -> bool:
-        # print(f"negative_boundary = {self.negative_boundary}")
-        # print(f"positive_boundary = {self.positive_boundary}")
+    def is_valid(self, i: int, j: int, k: int) -> bool:
         _is_valid = self.negative_boundary < i < self.positive_boundary
         _is_valid &= self.negative_boundary < j < self.positive_boundary
+        _is_valid &= self.negative_boundary < k < self.positive_boundary
         return _is_valid
 
     @ti.func
-    def is_colliding(self, i: int, j: int) -> bool:
+    def is_colliding(self, i: int, j: int, k: int) -> bool:
         _is_colliding = False
-        if self.is_valid(i, j):
-            _is_colliding = self.classification_c[i, j] == Classification.Colliding
+        if ti.static(self.d == 2):
+            if self.is_valid(i, j, 0):
+                _is_colliding = self.classification_c[i, j] == Classification.Colliding
+        else:
+            if self.is_valid(i, j, k):
+                _is_colliding = self.classification_c[i, j, k] == Classification.Colliding
+
         return _is_colliding
 
     @ti.func
-    def is_interior(self, i: int, j: int) -> bool:
+    def is_interior(self, i: int, j: int, k: int) -> bool:
         _is_interior = False
-        if self.is_valid(i, j):
-            _is_interior = self.classification_c[i, j] == Classification.Interior
+        if ti.static(self.d == 2):
+            if self.is_valid(i, j, 0):
+                _is_interior = self.classification_c[i, j] == Classification.Interior
+        else:
+            if self.is_valid(i, j, k):
+                _is_interior = self.classification_c[i, j, k] == Classification.Interior
+
         return _is_interior
 
     @ti.func
-    def is_empty(self, i: int, j: int) -> bool:
+    def is_empty(self, i: int, j: int, k: int) -> bool:
         _is_empty = False
-        if self.is_valid(i, j):
-            _is_empty = self.classification_c[i, j] == Classification.Empty
+        if ti.static(self.d == 2):
+            if self.is_valid(i, j, 0):
+                _is_empty = self.classification_c[i, j] == Classification.Empty
+        else:
+            if self.is_valid(i, j, k):
+                _is_empty = self.classification_c[i, j, k] == Classification.Empty
+
         return _is_empty
 
     @ti.func
-    def is_insulated(self, i: int, j: int) -> bool:
+    def is_insulated(self, i: int, j: int, k: int) -> bool:
         _is_insulated = False
-        if self.is_valid(i, j):
-            _is_insulated = self.classification_c[i, j] == Classification.Insulated
-        return _is_insulated
+        if ti.static(self.d == 2):
+            if self.is_valid(i, j, 0):
+                _is_insulated = self.classification_c[i, j] == Classification.Insulated
+        else:
+            if self.is_valid(i, j, k):
+                _is_insulated = self.classification_c[i, j, k] == Classification.Insulated
 
-    # @ti.func
-    # def is_colliding(self, i: int, j: int) -> bool:
-    #     return self.is_valid(i, j) and self.classification_c[i, j] == Classification.Colliding
-    #
-    # @ti.func
-    # def is_insulated(self, i: int, j: int) -> bool:
-    #     return self.is_valid(i, j) and self.classification_c[i, j] == Classification.Insulated
-    #
-    # @ti.func
-    # def is_interior(self, i: int, j: int) -> bool:
-    #     return self.is_valid(i, j) and self.classification_c[i, j] == Classification.Interior
-    #
-    # @ti.func
-    # def is_empty(self, i: int, j: int) -> bool:
-    #     return self.is_valid(i, j) and self.classification_c[i, j] == Classification.Empty
+        return _is_insulated
 
     @ti.func
     def compute_cubic_kernel(self, distance: ti.template()) -> ti.template():  # pyright: ignore
@@ -131,7 +149,7 @@ class CollocatedSolver(ABC):
         self.gravity[None] = configuration.gravity
         self.dt[None] = configuration.dt
         self.state_p.fill(State.Hidden)
-        self.position_p.fill([42, 42])
+        self.position_p.fill([42, 42] if self.d == 2 else [42, 42, 42])
         self.n_particles[None] = 0
 
     def substep(self):

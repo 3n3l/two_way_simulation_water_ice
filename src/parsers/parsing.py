@@ -29,6 +29,17 @@ def add_configuration(configurations: list[Configuration]):
 #     type=int,
 # )
 
+dimension_help = "Choose the dimension for the simulation."
+parser.add_argument(
+    "-d",
+    "--dimension",
+    default=3,
+    choices={2, 3},
+    nargs="?",
+    help=dimension_help,
+    type=int,
+)
+
 solver_type_help = "Choose the Taichi architecture to run on."
 parser.add_argument(
     "-a",
@@ -61,7 +72,6 @@ parser.add_argument(
 
 solver_type_help = "Turn on debugging."
 parser.add_argument(
-    "-d",
     "--debug",
     default=False,
     action="store_true",
@@ -70,7 +80,6 @@ parser.add_argument(
 
 solver_type_help = "Turn on verbose logging."
 parser.add_argument(
-    "-v",
     "--verbose",
     default=False,
     action="store_true",

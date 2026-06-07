@@ -6,13 +6,13 @@ import taichi as ti
 @ti.data_oriented
 class HeatSolver:
     def __init__(self, solver) -> None:
-        self.w_cells = solver.w_grid * solver.w_grid
+        self.w_cells = solver.wx * solver.wx
         self.solver = solver
 
     @ti.kernel
     def fill_linear_system(self, A: ti.types.sparse_matrix_builder(), b: ti.types.ndarray()):  # pyright: ignore
-        for i, j in ti.ndrange(self.solver.w_grid, self.solver.w_grid):
-            idx = (i * self.solver.w_grid) + j  # raveled index
+        for i, j in ti.ndrange(self.solver.wx, self.solver.wx):
+            idx = (i * self.solver.wx) + j  # raveled index
             b[idx] = self.solver.temperature_c[i, j]  # right-hand side
 
             # We enforce Dirichlet temperature boundary conditions at CELLS that are in contact with fixed
@@ -34,13 +34,13 @@ class HeatSolver:
             if not self.solver.is_insulated(i + 1, j):  # homogeneous Neumann
                 diagonal += dt_inv_mass_capacity * self.solver.conductivity_x[i + 1, j]
                 if self.solver.is_empty(i + 1, j):  # non-homogeneous Dirichlet
-                    A[idx, idx + self.solver.w_grid] -= dt_inv_mass_capacity * self.solver.conductivity_x[i + 1, j]
+                    A[idx, idx + self.solver.wx] -= dt_inv_mass_capacity * self.solver.conductivity_x[i + 1, j]
                     b[idx] += inv_dx_sqrd * self.solver.conductivity_x[i + 1, j] * self.solver.temperature_c[i + 1, j]
 
             if not self.solver.is_insulated(i - 1, j):  # homogeneous Neumann
                 diagonal += dt_inv_mass_capacity * self.solver.conductivity_x[i, j]
                 if self.solver.is_empty(i - 1, j):  # non-homogeneous Dirichlet
-                    A[idx, idx - self.solver.w_grid] -= dt_inv_mass_capacity * self.solver.conductivity_x[i, j]
+                    A[idx, idx - self.solver.wx] -= dt_inv_mass_capacity * self.solver.conductivity_x[i, j]
                     b[idx] += inv_dx_sqrd * self.solver.conductivity_x[i, j] * self.solver.temperature_c[i - 1, j]
 
             if not self.solver.is_insulated(i, j + 1):  # homogeneous Neumann
@@ -59,8 +59,8 @@ class HeatSolver:
 
     @ti.kernel
     def fill_temperature_field(self, T: ti.types.ndarray()):  # pyright: ignore
-        for i, j in ti.ndrange(self.solver.w_grid, self.solver.w_grid):
-            self.solver.temperature_c[i, j] = T[(i * self.solver.w_grid) + j]
+        for i, j in ti.ndrange(self.solver.wx, self.solver.wx):
+            self.solver.temperature_c[i, j] = T[(i * self.solver.wx) + j]
 
     def solve(self):
         A = SparseMatrixBuilder(

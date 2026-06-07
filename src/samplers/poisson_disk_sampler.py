@@ -23,10 +23,13 @@ class PoissonDiskSampler(ABC):
 
         # The width of the simulation boundary in grid nodes and offsets to
         # guarantee that seeded particles always lie within the boundary:
-        w_grid = self.n_grid + (2 * solver.w_grid)
+        # TODO: shouldn't this be the width of the grid??????????
+        self.wx = self.n_grid + (2 * solver.wx)
+        self.wy = self.n_grid + (2 * solver.wy)
+        self.wz = self.n_grid + (2 * solver.wz)  # TODO: should be zero when wz is zero?
 
         # Initialize an n-dimension background grid to store samples:
-        self.background_grid = ti.field(dtype=ti.i32, shape=(w_grid, w_grid), offset=solver.w_offset)
+        self.background_grid = ti.field(dtype=ti.i32, shape=(self.wx, self.wy, self.wz), offset=solver.w_offset)
 
         # We can't use a resizable list, so we point to the head and tail:
         self._head = ti.field(ti.i32, shape=())
@@ -34,12 +37,14 @@ class PoissonDiskSampler(ABC):
 
     @ti.func
     def _has_collision(self, base_point: ti.template()) -> bool:  # pyright: ignore
-        x, y = self._point_to_index(base_point)
-        _min = (ti.max(0, x - 2), ti.min(self.n_grid, x + 3))  # pyright: ignore
-        _max = (ti.max(0, y - 2), ti.min(self.n_grid, y + 3))  # pyright: ignore
+        x, y, z = self._point_to_index(base_point)
+        xs = (ti.max(0, x - 2), ti.min(self.n_grid, x + 3))  # pyright: ignore
+        ys = (ti.max(0, y - 2), ti.min(self.n_grid, y + 3))  # pyright: ignore
+        zs = (ti.max(0, z - 2), ti.min(self.n_grid, z + 3))  # pzright: ignore
         distance_min = ti.sqrt(2)  # initialize as maximum possible distance
-        for i, j in ti.ndrange(_min, _max):
-            if (index := self.background_grid[i, j]) != -1:
+        # TODO: incorporate 3D here?
+        for i, j, k in ti.ndrange(xs, ys, zs):
+            if (index := self.background_grid[i, j, k]) != -1:
                 # We found a point and can compute the distance:
                 found_point = self.solver.position_p[index]
                 distance = (found_point - base_point).norm()
@@ -50,8 +55,10 @@ class PoissonDiskSampler(ABC):
 
     @ti.func
     def _in_bounds(self, point: ti.template(), geometry: ti.template()) -> bool:  # pyright: ignore
-        in_bounds = 0.0 < point[0] < 1.0 and 0.0 < point[1] < 1.0  # in simulation bounds
-        in_bounds &= geometry.in_bounds(point[0], point[1])  # in geometry bounds
+        in_bounds = geometry.in_bounds(point[0], point[1], point[2])  # in geometry bounds
+        in_bounds &= 0.0 < point[0] < 1.0  # in simulation bounds
+        in_bounds &= 0.0 < point[1] < 1.0  # in simulation bounds
+        in_bounds &= 0.0 < point[2] < 1.0  # in simulation bounds
         return in_bounds
 
     @ti.func
@@ -66,12 +73,12 @@ class PoissonDiskSampler(ABC):
 
     @ti.func
     def _can_sample_more_points(self) -> bool:
-        return (self._head[None] < self._tail[None]) and (self._head[None] < self.solver.max_particles)
+        return (self._head[None] < self._tail[None]) and (self._head[None] < self.solver.max_particles - 1)
 
     @ti.func
     def _initialize_grid(self, n_particles: ti.i32):  # pyright: ignore
-        for i, j in ti.ndrange(self.n_grid, self.n_grid):
-            self.background_grid[i, j] = -1
+        for i, j, k in ti.ndrange(self.n_grid, self.n_grid, self.n_grid):
+            self.background_grid[i, j, k] = -1
 
         for p in ti.ndrange(n_particles):
             # We ignore uninitialized particles:
@@ -83,8 +90,12 @@ class PoissonDiskSampler(ABC):
 
     @ti.func
     def _generate_point_around(self, prev_position: ti.template()) -> ti.Vector:  # pyright: ignore
-        theta = ti.random() * 2 * ti.math.pi
-        offset = ti.Vector([ti.cos(theta), ti.sin(theta)])
+        t = ti.random() * 2 * ti.math.pi  # theta
+        p = ti.random() * 2 * ti.math.pi  # phi
+        x = ti.sin(t) * ti.cos(p)
+        y = ti.sin(t) * ti.sin(p)
+        z = ti.cos(t)
+        offset = ti.Vector([x, y, z])
         offset *= (1 + ti.random()) * self.r
         return prev_position + offset
 
@@ -120,6 +131,7 @@ class PoissonDiskSampler(ABC):
         self._tail[None] += 1
 
         while self._can_sample_more_points():
+            # print("ahhh -> ", self.solver.position_p[self._head[None]])
             prev_position = self.solver.position_p[self._head[None]]
             self._head[None] += 1  # Increment on each iteration
             for _ in range(self.k):
