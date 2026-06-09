@@ -17,7 +17,7 @@ class CollocatedSolver(ABC):
 
         # The width of the simulation boundary in grid nodes and offsets to
         # guarantee that seeded particles always lie within the boundary:
-        self.boundary_width = 3
+        self.boundary_width = 5
         self.wx = self.n_grid + self.boundary_width + self.boundary_width
         self.wy = self.wx
         self.wz = 0 if self.d == 0 else self.wx

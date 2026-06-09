@@ -7,7 +7,7 @@ import taichi as ti
 @ti.data_oriented
 class PressureSolver:
     def __init__(self, solver: StaggeredSolver) -> None:
-        self.w_cells = solver.wx**solver.d
+        self.w_cells = solver.wx * solver.wy * solver.wz
         self.solver = solver
 
     @ti.kernel
@@ -16,7 +16,7 @@ class PressureSolver:
         for i, j, k in ti.ndrange(self.solver.wx, self.solver.wy, self.solver.wz):
             diagonal = 0.0  # to keep max_num_triplets as low as possible
             # idx = (i * self.solver.wx) + j  # raveled index, 2D
-            idx = i + self.solver.wx * (j + self.solver.wy * k)  # raveled index, 3D
+            idx = i + self.solver.wx * (j + (self.solver.wy * k))  # raveled index, 3D
             # idx = i + self.solver.wx * j + self.solver.wx * self.solver.wy * k  # raveled index, 3D
 
             # We enforce homogeneous Dirichlet pressure boundary conditions at CELLS that have been marked as empty.
@@ -81,7 +81,7 @@ class PressureSolver:
         coefficient = self.solver.dt[None] * self.solver.inv_dx
         for i, j, k in ti.ndrange(self.solver.wx, self.solver.wy, self.solver.wz):
             # idx = i * self.solver.wx + j  # raveled index, 2D
-            idx = i + self.solver.wx * (j + self.solver.wy * k)  # raveled index, 3D
+            idx = i + self.solver.wx * (j + (self.solver.wy * k))  # raveled index, 3D
 
             if self.solver.is_interior(i - 1, j, k) or self.solver.is_interior(i, j, k):
                 if not (self.solver.is_colliding(i - 1, j, k) or self.solver.is_colliding(i, j, k)):

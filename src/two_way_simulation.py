@@ -200,8 +200,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             velocity_x, velocity_y, velocity_z = self.velocity_p[p][0], self.velocity_p[p][1], self.velocity_p[p][2]
             mass_p = self.mass_p[p]
-            # for offset in ti.grouped(ti.ndrange(*self.cubic_neighbors)):
-            # for i, j, k in ti.ndrange(*self.cubic_neighbors):
             for offset in ti.static(ti.grouped(ti.ndrange(*self.cubic_neighbors))):
                 # FIXME: this is not working without static outer loop on macOS?!
                 weight_c, weight_x, weight_y, weight_z = 1.0, 1.0, 1.0, 1.0
@@ -327,6 +325,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             if is_colliding:
                 self.classification_c[i, j, k] = Classification.Colliding
+                print(f"is colliding: {i,j,k}")
 
                 # The boundary temperature is recorded for boundary (colliding) cells:
                 self.temperature_c[i, j, k] = self.boundary_temperature[None]
@@ -340,10 +339,12 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             if cell_is_interior:
                 self.classification_c[i, j, k] = Classification.Interior
+                print(f"is interior: {i,j,k}")
                 continue
 
             # All remaining cells are empty.
             self.classification_c[i, j, k] = Classification.Empty
+            print(f"is empty: {i,j,k}")
 
             # If the free surface is being enforced as a Dirichlet temperature condition,
             # the ambient air temperature is recorded for empty cells.
@@ -352,7 +353,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
     @ti.kernel
     def compute_volumes(self):
         # FIXME: this seems to be wrong, the paper has a sum over CDFs
-        control_volume = 0.5 * self.dx * self.dx * self.dx
+        control_volume = 0.5 * (self.dx ** self.d)
         for i, j, k in self.classification_c:
             if self.classification_c[i, j, k] == Classification.Interior:
                 self.volume_x[i + 1, j, k] += control_volume
@@ -450,7 +451,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.momentum_to_velocity()
         self.classify_cells()
         self.compute_volumes()
-        # TODO: reintroduce them when this is all working
-        self.pressure_solver.solve()
-        # self.heat_solver.solve()
+        # self.pressure_solver.solve()
+        self.heat_solver.solve()
         self.grid_to_particle()

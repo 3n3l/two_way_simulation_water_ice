@@ -241,7 +241,7 @@ mixed_presets = [
     #     ],
     # ),
     Configuration(
-        dt=1e-4,
+        dt=3e-4,
         name="Spherefall, Water vs. Ice",
         information="Water, Ice",
         ambient_temperature=0.0,
