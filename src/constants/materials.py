@@ -48,11 +48,13 @@ class Ice(Material):
     Phase = 86
     Mu = E / (2 * (1 + nu))
 
-    Zeta: int = 20
-    Theta_s: float = 3.5e-2  # Critical stretch (7.5e-3)
-    Theta_c: float = 1.5e-1  # Critical compression (2.5e-2)
-    # Theta_s: float = 7.5e-3  # Critical stretch (7.5e-3)
-    # Theta_c: float = 2.5e-2  # Critical compression (2.5e-2)
+    Zeta: int = 30
+    # Theta_s: float = 3.5e-3  # Critical stretch (7.5e-3)
+    # Theta_c: float = 1.5e-2  # Critical compression (2.5e-2)
+    # Theta_s: float = 5.5e-3  # Critical stretch (7.5e-3)
+    # Theta_c: float = 3.5e-2  # Critical compression (2.5e-2)
+    Theta_s: float = 6.5e-3  # Critical stretch (7.5e-3)
+    Theta_c: float = 1.5e-2  # Critical compression (2.5e-2)
 
 
 @dataclass

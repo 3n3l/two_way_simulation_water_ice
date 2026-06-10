@@ -325,7 +325,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             if is_colliding:
                 self.classification_c[i, j, k] = Classification.Colliding
-                print(f"is colliding: {i,j,k}")
 
                 # The boundary temperature is recorded for boundary (colliding) cells:
                 self.temperature_c[i, j, k] = self.boundary_temperature[None]
@@ -339,12 +338,10 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             if cell_is_interior:
                 self.classification_c[i, j, k] = Classification.Interior
-                print(f"is interior: {i,j,k}")
                 continue
 
             # All remaining cells are empty.
             self.classification_c[i, j, k] = Classification.Empty
-            print(f"is empty: {i,j,k}")
 
             # If the free surface is being enforced as a Dirichlet temperature condition,
             # the ambient air temperature is recorded for empty cells.
@@ -451,6 +448,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.momentum_to_velocity()
         self.classify_cells()
         self.compute_volumes()
-        # self.pressure_solver.solve()
+        self.pressure_solver.solve()
         self.heat_solver.solve()
         self.grid_to_particle()

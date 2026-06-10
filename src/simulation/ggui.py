@@ -50,7 +50,7 @@ class GGUI_Simulation(BaseSimulation):
 
         self.scene = self.window.get_scene()
         self.camera = ti.ui.Camera()
-        self.camera.position(0.5, 0.5, 1.55)
+        self.camera.position(0.8, 0.5, 1.65)
         self.camera.lookat(0.5, 0.3, 0.5)
         # self.camera.up(0, 1, 0)
         self.camera.fov(55)
