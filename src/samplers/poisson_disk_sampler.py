@@ -23,10 +23,9 @@ class PoissonDiskSampler(ABC):
 
         # The width of the simulation boundary in grid nodes and offsets to
         # guarantee that seeded particles always lie within the boundary:
-        # TODO: shouldn't this be the width of the grid??????????
-        self.wx = self.n_grid + (2 * solver.wx)
-        self.wy = self.n_grid + (2 * solver.wy)
-        self.wz = self.n_grid + (2 * solver.wz)  # TODO: should be zero when wz is zero?
+        self.wx = self.n_grid + (2 * solver.boundary_width)
+        self.wy = self.n_grid + (2 * solver.boundary_width)
+        self.wz = self.n_grid + (2 * solver.boundary_width)
 
         # Initialize an n-dimension background grid to store samples:
         self.background_grid = ti.field(dtype=ti.i32, shape=(self.wx, self.wy, self.wz), offset=solver.w_offset)
