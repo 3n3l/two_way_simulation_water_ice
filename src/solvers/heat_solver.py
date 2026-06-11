@@ -12,7 +12,6 @@ class HeatSolver:
     @ti.kernel
     def fill_linear_system(self, A: ti.types.sparse_matrix_builder(), b: ti.types.ndarray()):  # pyright: ignore
         for i, j, k in ti.ndrange(self.solver.wx, self.solver.wy, self.solver.wz):
-            # idx = (i * self.solver.wx) + j  # raveled index, 2D
             idx = i + self.solver.wx * (j + (self.solver.wy * k))  # raveled index, 3D
             b[idx] = self.solver.temperature_c[i, j, k]  # right-hand side
 
@@ -24,7 +23,6 @@ class HeatSolver:
                 continue
 
             # Compute (1 / dx^2) * ((dt * dx^d) / (m_c * c_c)) [Jiang 2016, Ch. 5.8],
-            # NOTE: dx^2 is cancelled out by 1 / dx^2 because d == 3.
             dt_inv_mass_capacity = self.solver.dt[None] * self.solver.dx
             dt_inv_mass_capacity /= self.solver.mass_c[i, j, k] * self.solver.capacity_c[i, j, k]
             inv_dx_sqrd = self.solver.inv_dx * self.solver.inv_dx
