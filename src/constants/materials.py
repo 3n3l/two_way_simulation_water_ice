@@ -26,7 +26,8 @@ class Material:
 @dataclass
 class Water(Material):
     Conductivity = 0.55
-    LatentHeat = 334.4
+    # LatentHeat = 334.4
+    LatentHeat = 0.3344
     Capacity = 4.186  # j/dC
     Density = 997.0
     Lambda = 1e32
@@ -48,13 +49,13 @@ class Ice(Material):
     Phase = 86
     Mu = E / (2 * (1 + nu))
 
-    Zeta: int = 30
+    Zeta: int = 25
     # Theta_s: float = 3.5e-3  # Critical stretch (7.5e-3)
     # Theta_c: float = 1.5e-2  # Critical compression (2.5e-2)
     # Theta_s: float = 5.5e-3  # Critical stretch (7.5e-3)
     # Theta_c: float = 3.5e-2  # Critical compression (2.5e-2)
-    Theta_s: float = 6.5e-3  # Critical stretch (7.5e-3)
-    Theta_c: float = 1.5e-2  # Critical compression (2.5e-2)
+    Theta_s: float = 5.5e-3  # Critical stretch (7.5e-3)
+    Theta_c: float = 3.5e-2  # Critical compression (2.5e-2)
 
 
 @dataclass
