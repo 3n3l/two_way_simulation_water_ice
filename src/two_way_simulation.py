@@ -159,7 +159,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
             # Apply ice strain hardening by adjusting Lame parameters:
             la, mu = self.lambda_p[p], self.mu_p[p]
             if self.phase_p[p] == Ice.Phase:
-                hardening = ti.max(0.1, ti.min(20, ti.exp(self.zeta_p[p] * (1.0 - self.JP_p[p]))))
+                hardening = ti.max(0.1, ti.min(40, ti.exp(self.zeta_p[p] * (1.0 - self.JP_p[p]))))
                 la, mu = la * hardening, mu * hardening
 
             # Eliminate dilational component explicitly [Jiang 2014, Eqn. 8], then
