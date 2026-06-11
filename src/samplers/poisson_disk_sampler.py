@@ -18,7 +18,7 @@ class PoissonDiskSampler(ABC):
 
         self.r = r  # Minimum distance between samples
         self.k = k  # Samples to choose before rejection
-        self.dx = r / ti.sqrt(2)  # Cell size is bounded by this
+        self.dx = r / ti.sqrt(3)  # Cell size is bounded by this (3D)
         self.n_grid = int(1 / self.dx)  # Number of cells in the grid
 
         # The width of the simulation boundary in grid nodes and offsets to
