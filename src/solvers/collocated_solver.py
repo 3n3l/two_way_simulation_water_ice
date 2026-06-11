@@ -143,11 +143,11 @@ class CollocatedSolver(ABC):
         """
         return [0.5 * (1.5 - distance) ** 2, 0.75 - (distance - 1) ** 2, 0.5 * (distance - 0.5) ** 2]
 
-    def reset(self, configuration: Configuration):
+    def reset(self, configuration: Configuration, quality: float):
         self.boundary_temperature[None] = configuration.boundary_temperature
         self.ambient_temperature[None] = configuration.ambient_temperature
         self.gravity[None] = configuration.gravity
-        self.dt[None] = configuration.dt
+        self.dt[None] = configuration.dt / quality
         self.state_p.fill(State.Hidden)
         self.position_p.fill([42, 42] if self.d == 2 else [42, 42, 42])
         self.n_particles[None] = 0

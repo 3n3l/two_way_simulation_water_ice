@@ -32,23 +32,46 @@ def main():
     prefix = "TWS_MLSMPM"
 
     d = arguments.dimension
-    max_particles, n_grid = 900_000, 128
+    q = 2**arguments.quality
+    n_grid = int(128 * q)
     radius = 1 / (4 * float(n_grid))  # 4 particles per cell
-    vol_0 = math.pi * (radius**d)
+    vol_0 = 0.0
+    if d == 2:
+        vol_0 = math.pi * (radius**2)
+    elif d == 3:
+        vol_0 = (4 / 3) * math.pi * (radius**3)
 
-    solver = TwoWay_MLSMPM(max_particles=max_particles, n_dimensions=d, n_grid=n_grid, vol_0=vol_0)
-    poisson_disk_sampler = PoissonDiskSampler(solver=solver, r=radius, k=30)
+    # Make a rough guess of maximum possible amount of particles from volumes:
+    max_volume = 0.0
+    for configuration in configurations:
+        if (volume := configuration.volume()) > max_volume:
+            max_volume = volume
+    max_particles = math.ceil(d * max_volume / (vol_0))
+
+    solver = TwoWay_MLSMPM(
+        max_particles=max_particles,
+        n_dimensions=d,
+        n_grid=n_grid,
+        vol_0=vol_0,
+    )
+
+    poisson_disk_sampler = PoissonDiskSampler(
+        solver=solver,
+        r=radius,
+        k=30,
+    )
+
     if arguments.gui.lower() == "ggui":
         simulation = GGUI_Simulation(
             initial_configuration=initial_configuration,
             configurations=configurations,
             sampler=poisson_disk_sampler,
-            # res=(720, 720),
-            res=(360, 360),
+            res=(720, 720),
             prefix=prefix,
             solver=solver,
             radius=radius,
             name=name,
+            quality=q,
         )
         simulation.run()
     elif arguments.gui.lower() == "gui":
@@ -60,6 +83,7 @@ def main():
             solver=solver,
             radius=radius,
             name=name,
+            quality=q,
             res=720,
         )
         simulation.run()

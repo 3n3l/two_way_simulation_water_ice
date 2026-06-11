@@ -28,6 +28,7 @@ class GGUI_Simulation(BaseSimulation):
         sampler: PoissonDiskSampler,
         res: tuple[int, int],
         solver: CollocatedSolver,
+        quality: float,
         prefix: str,
         name: str,
         initial_configuration: int = 0,
@@ -38,6 +39,7 @@ class GGUI_Simulation(BaseSimulation):
             configurations=configurations,
             radius=radius,
             prefix=prefix,
+            quality=quality,
             sampler=sampler,
             solver=solver,
             name=name,
@@ -50,8 +52,8 @@ class GGUI_Simulation(BaseSimulation):
 
         self.scene = self.window.get_scene()
         self.camera = ti.ui.Camera()
-        self.camera.position(0.8, 0.5, 1.65)
-        self.camera.lookat(0.5, 0.3, 0.5)
+        self.camera.position(0.5, 0.6, 1.95)
+        self.camera.lookat(0.5, 0.4, 0.5)
         # self.camera.up(0, 1, 0)
         self.camera.fov(55)
         # self.camera.projection_mode(ti.ui.ProjectionMode.Perspective)
@@ -76,7 +78,7 @@ class GGUI_Simulation(BaseSimulation):
 
         # Foreground Options:
         self.foreground_options = [
-            # DrawingOption("Temperature", False, self.draw_temperature_p),
+            DrawingOption("Temperature", False, self.draw_temperature_p),
             # DrawingOption("Background", False, lambda: None),
             DrawingOption("Phase", True, self.draw_phase_p),
         ]
@@ -251,7 +253,12 @@ class GGUI_Simulation(BaseSimulation):
         Draw the temperature for each particle.
         """
         # self.update_temperature_p()
-        self.canvas.circles(
+        # self.canvas.circles(
+        #     per_vertex_color=self.temperature_colors_p,
+        #     centers=self.solver.position_p,
+        #     radius=self.radius,
+        # )
+        self.scene.particles(
             per_vertex_color=self.temperature_colors_p,
             centers=self.solver.position_p,
             radius=self.radius,
@@ -266,12 +273,16 @@ class GGUI_Simulation(BaseSimulation):
         #     centers=self.solver.position_p,
         #     radius=self.radius,
         # )
-        self.scene.particles(per_vertex_color=self.solver.color_p, centers=self.solver.position_p, radius=self.radius)
+        self.scene.particles(
+            per_vertex_color=self.solver.color_p,
+            centers=self.solver.position_p,
+            radius=self.radius,
+        )
 
     @ti.kernel
     def update_scratch_field(self, scalar_field: ti.template()):  # pyright: ignore
-        for i, j in ti.ndrange(self.solver.n_grid, self.solver.n_grid):
-            self.scratch_field[i, j] = scalar_field[i, j]
+        for i, j, k in ti.ndrange(self.solver.n_grid, self.solver.n_grid, self.solver.n_grid):
+            self.scratch_field[i, j, k] = scalar_field[i, j, k]
 
     def show_contour(self, scalar_field) -> None:
         """
@@ -291,8 +302,8 @@ class GGUI_Simulation(BaseSimulation):
                 option.draw()
 
         self.camera.track_user_inputs(self.window, movement_speed=0.03, hold_key=ti.ui.RMB)
-        self.scene.point_light(pos=(0.5, 1.0, 0.5), color=(0.8, 0.8, 0.8))
-        self.scene.point_light(pos=(0.5, 1.0, 1.5), color=(0.8, 0.8, 0.8))
+        self.scene.point_light(pos=(0.5, 1.0, 0.5), color=(0.4, 0.4, 0.4))
+        self.scene.point_light(pos=(0.5, 1.0, 1.5), color=(0.4, 0.4, 0.4))
         self.scene.set_camera(self.camera)
         self.scene.ambient_light((0.8, 0.8, 0.8))
         self.canvas.scene(self.scene)  # NOTE: 3D

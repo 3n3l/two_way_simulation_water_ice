@@ -18,16 +18,16 @@ def add_configuration(configurations: list[Configuration]):
     )
 
 
-# TODO: the quality variable isn't used at all at the moment
-# quality_help = "Choose a quality multiplicator for the simulation (higher is better)."
-# parser.add_argument(
-#     "-q",
-#     "--quality",
-#     default=1,
-#     nargs="?",
-#     help=quality_help,
-#     type=int,
-# )
+quality_help = "Choose a quality multiplicator for the simulation (higher is better)."
+parser.add_argument(
+    "-q",
+    "--quality",
+    default=0,
+    choices={-2, -1, 0, 1, 2},
+    nargs="?",
+    help=quality_help,
+    type=int,
+)
 
 dimension_help = "Choose the dimension for the simulation."
 parser.add_argument(
@@ -58,16 +58,6 @@ parser.add_argument(
     nargs="?",
     choices=["GGUI", "GUI"],
     help=ggui_help,
-)
-
-solver_type_help = "Choose whether to use a direct or iterative solver for the pressure and heat systems."
-parser.add_argument(
-    "-s",
-    "--solverType",
-    default="Iterative",
-    nargs="?",
-    choices=["Direct", "Iterative"],
-    help=solver_type_help,
 )
 
 solver_type_help = "Turn on debugging."

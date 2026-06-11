@@ -24,6 +24,7 @@ class Configuration:
         self.ambient_temperature = ambient_temperature
         self.boundary_temperature = boundary_temperature
 
+        self.geometries = geometries
         self.initial_geometries = []
         self.discrete_geometries = []
         self.continuous_geometries = []
@@ -38,3 +39,9 @@ class Configuration:
         # Sort this by frame_threshold, so only the first element has to be checked against.
         self.continuous_geometries.sort(key=(lambda g: g.frame_threshold))
         self.discrete_geometries.sort(key=(lambda g: g.frame_threshold))
+
+    def volume(self) -> float:
+        _volume = 0.0
+        for geometry in self.geometries:
+            _volume += geometry.volume()
+        return _volume

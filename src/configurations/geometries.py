@@ -37,6 +37,10 @@ class Geometry(ABC):
     def random_seed(self) -> ti.Vector:
         pass
 
+    @abstractmethod
+    def volume(self) -> float:
+        pass
+
 
 class Circle(Geometry):
     def __init__(
@@ -67,6 +71,9 @@ class Circle(Geometry):
         y = (r * ti.sin(t) * ti.sin(p)) + self.y
         z = (r * ti.cos(t)) + self.z
         return ti.Vector([x, y, z])
+
+    def volume(self) -> float:
+        return (4 / 3) * ti.math.pi * (self.radius ** 3)
 
 
 class Rectangle(Geometry):
@@ -100,3 +107,6 @@ class Rectangle(Geometry):
         y = self.y + ti.random() * self.height
         z = self.z + ti.random() * self.depth
         return ti.Vector([x, y, z])
+
+    def volume(self) -> float:
+        return self.width * self.height * self.depth

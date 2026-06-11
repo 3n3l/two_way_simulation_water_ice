@@ -16,6 +16,7 @@ class BaseSimulation:
         configurations: list[Configuration],
         sampler: PoissonDiskSampler,
         solver: CollocatedSolver,
+        quality: float,
         radius: float,
         prefix: str,
         name: str,
@@ -31,6 +32,7 @@ class BaseSimulation:
             configurations: list of configurations for the solver
         """
         # State.
+        self.quality = quality
         self.is_paused = True
         self.should_write_to_disk = False
         self.should_create_video = True
@@ -134,7 +136,7 @@ class BaseSimulation:
         """
         Reset the simulation.
         """
-        self.solver.reset(self.configuration)
+        self.solver.reset(self.configuration, self.quality)
         self.current_frame = 0
 
         # We copy this, so we can pop from this list and check the length:
