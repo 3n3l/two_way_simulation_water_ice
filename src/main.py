@@ -21,11 +21,11 @@ def main():
 
     # Initialize Taichi on the chosen architecture:
     if arguments.arch.lower() == "cpu":
-        ti.init(arch=ti.cpu, debug=arguments.debug, verbose=arguments.verbose)
+        ti.init(arch=ti.cpu, debug=arguments.debug, verbose=arguments.verbose, unrolling_limit=0)
     elif arguments.arch.lower() == "gpu":
-        ti.init(arch=ti.gpu, debug=arguments.debug, verbose=arguments.verbose)
+        ti.init(arch=ti.gpu, debug=arguments.debug, verbose=arguments.verbose, unrolling_limit=0)
     else:
-        ti.init(arch=ti.cuda, debug=arguments.debug, verbose=arguments.verbose)
+        ti.init(arch=ti.cuda, debug=arguments.debug, verbose=arguments.verbose, unrolling_limit=0)
 
     initial_configuration = arguments.configuration % len(configurations)
     name = "Two-Way Simulation of Water & Ice"
