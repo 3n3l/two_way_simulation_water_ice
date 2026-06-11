@@ -39,9 +39,8 @@ class PoissonDiskSampler(ABC):
         x, y, z = self._point_to_index(base_point)
         xs = (ti.max(0, x - 2), ti.min(self.n_grid, x + 3))  # pyright: ignore
         ys = (ti.max(0, y - 2), ti.min(self.n_grid, y + 3))  # pyright: ignore
-        zs = (ti.max(0, z - 2), ti.min(self.n_grid, z + 3))  # pzright: ignore
-        distance_min = ti.sqrt(2)  # initialize as maximum possible distance
-        # TODO: incorporate 3D here?
+        zs = (ti.max(0, z - 2), ti.min(self.n_grid, z + 3))  # pyright: ignore
+        distance_min = ti.math.inf # initialize as maximum possible distance
         for i, j, k in ti.ndrange(xs, ys, zs):
             if (index := self.background_grid[i, j, k]) != -1:
                 # We found a point and can compute the distance:
