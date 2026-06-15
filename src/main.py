@@ -33,13 +33,12 @@ def main():
 
     d = arguments.dimension
     q = 2**arguments.quality
-    n_grid = int(128 * q)
-    radius = 1 / (4 * float(n_grid))  # 4 particles per cell
-    vol_0 = 0.0
-    if d == 2:
-        vol_0 = math.pi * (radius**2)
-    elif d == 3:
-        vol_0 = (4 / 3) * math.pi * (radius**3)
+    
+    n_grid = math.ceil(128 * q)
+    dx = 1 / n_grid
+    n_particles_cell = 4
+    radius = dx / (2 * (n_particles_cell ** (1 / 3)))
+    vol_0 = (0.5 * dx) ** 3
 
     # Make a rough guess of maximum possible amount of particles from volumes:
     max_volume = 0.0
@@ -48,18 +47,8 @@ def main():
             max_volume = volume
     max_particles = math.ceil(d * max_volume / (vol_0))
 
-    solver = TwoWay_MLSMPM(
-        max_particles=max_particles,
-        n_dimensions=d,
-        n_grid=n_grid,
-        vol_0=vol_0,
-    )
-
-    poisson_disk_sampler = PoissonDiskSampler(
-        solver=solver,
-        r=radius,
-        k=30,
-    )
+    solver = TwoWay_MLSMPM(max_particles=max_particles, n_dimensions=d, n_grid=n_grid, vol_0=vol_0)
+    poisson_disk_sampler = PoissonDiskSampler(solver=solver, r=radius*1.5, k=30)
 
     if arguments.gui.lower() == "ggui":
         simulation = GGUI_Simulation(
