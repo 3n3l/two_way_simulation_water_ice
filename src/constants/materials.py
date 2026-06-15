@@ -38,49 +38,17 @@ class Water(Material):
 
 @dataclass
 class Ice(Material):
-    E = 8.5e5
+    E = 5.5e5
     nu = 0.1
     Conductivity = 2.33
     LatentHeat = 0.0
     Capacity = 2.093  # j/dC
     Density = 917.0
-    Lambda = (E * nu) / ((1 + nu) * (1 - 2 * nu))
     Color = ColorRGB.Ice
     Phase = 86
-    Mu = E / (2 * (1 + nu))
-
-    Zeta: int = 25
-    # Theta_s: float = 3.5e-3  # Critical stretch (7.5e-3)
-    # Theta_c: float = 1.5e-2  # Critical compression (2.5e-2)
-    # Theta_s: float = 5.5e-3  # Critical stretch (7.5e-3)
-    # Theta_c: float = 3.5e-2  # Critical compression (2.5e-2)
-    Theta_s: float = 5.5e-3  # Critical stretch (7.5e-3)
-    Theta_c: float = 3.5e-2  # Critical compression (2.5e-2)
-
-
-@dataclass
-class Snow(Material):
-    E = 1.4e5
-    nu = 0.3
-    Conductivity = 2.33
-    LatentHeat = 0.0
-    Capacity = 2.093  # j/dC
-    Density = 400.0
     Lambda = (E * nu) / ((1 + nu) * (1 - 2 * nu))
-    Color = ColorRGB.Ice
-    Phase = 129
     Mu = E / (2 * (1 + nu))
 
-    Zeta: int = 8
+    Zeta: int = 20
     Theta_s: float = 6.5e-3
     Theta_c: float = 2.5e-2
-
-
-@dataclass
-class PurpleSnow(Snow):
-    Color = ColorRGB.Purple
-
-
-@dataclass
-class MagentaSnow(Snow):
-    Color = ColorRGB.Magenta

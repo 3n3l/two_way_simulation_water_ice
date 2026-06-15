@@ -2,9 +2,6 @@ from src.constants.materials import (
     Material,
     Water,
     Ice,
-    Snow,
-    PurpleSnow,
-    MagentaSnow,
 )
 
 from src.constants.colors import (
