@@ -136,7 +136,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             # Remove the deviatoric component from the deformation gradient:
             if self.phase_p[p] == Water.Phase:
-                # NOTE: 3D:
                 self.FE_p[p] = (self.JE_p[p] ** (1 / self.d)) * ti.Matrix.identity(ti.f32, self.d)
 
             # Clamp singular values to apply plasticity:
@@ -159,13 +158,12 @@ class TwoWay_MLSMPM(StaggeredSolver):
             # Apply ice strain hardening by adjusting Lame parameters:
             la, mu = self.lambda_p[p], self.mu_p[p]
             if self.phase_p[p] == Ice.Phase:
-                hardening = ti.max(0.1, ti.min(40, ti.exp(self.zeta_p[p] * (1.0 - self.JP_p[p]))))
+                hardening = ti.max(0.1, ti.min(30, ti.exp(self.zeta_p[p] * (1.0 - self.JP_p[p]))))
                 la, mu = la * hardening, mu * hardening
 
             # Eliminate dilational component explicitly [Jiang 2014, Eqn. 8], then
             # compute deviatoric Piola-Kirchhoff stress P(F) [Jiang 2016, Eqn. 52]:
             FE_deviatoric = self.FE_p[p] * (self.JE_p[p] ** (1 / self.d))
-            # FE_deviatoric = self.FE_p[p] * (self.JE_p[p] ** (-1 / self.d)) # FIXME: this should be right?!
             U_deviatoric, _, V_deviatoric = ti.svd(FE_deviatoric)
             piola_kirchhoff = FE_deviatoric - (U_deviatoric @ V_deviatoric.transpose())
             piola_kirchhoff = (2 * mu * piola_kirchhoff) @ self.FE_p[p].transpose()  # pyright: ignore
