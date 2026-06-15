@@ -6,6 +6,7 @@ from abc import abstractmethod
 from datetime import datetime
 
 import taichi as ti
+import numpy as np
 import math, os
 
 
@@ -35,6 +36,7 @@ class BaseSimulation:
         self.quality = quality
         self.is_paused = True
         self.should_write_to_disk = False
+        self.should_write_particles = False
         self.should_create_video = True
         self.should_create_gif = False
         self.is_showing_settings = not self.is_paused  # wether the settings are showing
@@ -46,15 +48,20 @@ class BaseSimulation:
         self.video_prefix = prefix
         self.name = name
 
-        # Create a parent directory, more directories will be created inside this
-        # directory that contain newly created frames, videos and GIFs.
-        self.parent_dir = ".output"
-        if not os.path.exists(self.parent_dir):
-            os.makedirs(self.parent_dir)
-
         # Solvers and samplers
         self.sampler = sampler
         self.solver = solver
+
+        # Create a parent directory, more directories will be created inside this
+        # directory that contain newly created frames, videos and GIFs.
+        self.frame_parent_dir = ".output"
+        if not os.path.exists(self.frame_parent_dir):
+            os.makedirs(self.frame_parent_dir)
+
+        self.particle_parent_dir = ".particles"
+        if not os.path.exists(self.particle_parent_dir):
+            os.makedirs(self.particle_parent_dir)
+        self.writer = ti.tools.PLYWriter(num_vertices=self.solver.max_particles)
 
         # Store configurations, sort them and add information:
         self.current_frame = 0
@@ -85,6 +92,7 @@ class BaseSimulation:
         return self.current_frame == geometries[0].frame_threshold
 
     def substep(self) -> None:
+        self.particle_frame_count += 1
         self.current_frame += 1
 
         # Discrete geometries will be added once per iteration:
@@ -107,10 +115,10 @@ class BaseSimulation:
         """
         date = datetime.now().strftime("%d%m%Y_%H%M%S")
         title = f"{self.video_prefix}_{date}"
-        output_dir = f"{self.parent_dir}/{title}"
-        os.makedirs(output_dir)
+        frame_output_dir = f"{self.frame_parent_dir}/{title}"
+        os.makedirs(frame_output_dir)
         self.video_manager = ti.tools.VideoManager(
-            output_dir=output_dir,
+            output_dir=frame_output_dir,
             video_filename=title,
             automatic_build=False,
             framerate=self.fps,
@@ -131,6 +139,13 @@ class BaseSimulation:
         """
         self.configuration = configuration
         self.reset()
+
+    def dump_particles(self) -> None:
+        date = datetime.now().strftime("%d%m%Y_%H%M%S")
+        title = f"{self.video_prefix}_{date}"
+        self.particle_output_path = f"{self.particle_parent_dir}/{title}/"
+        self.particle_frame_count = 0
+        os.makedirs(self.particle_output_path)
 
     def reset(self) -> None:
         """

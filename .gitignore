@@ -209,8 +209,9 @@ __marimo__/
 # macOS
 .DS_Store
 
-# exported frames, videos, gifs
+# exported frames, videos, gifs and .ply files
 .output
+.particles
 
 # imgui
 imgui.ini

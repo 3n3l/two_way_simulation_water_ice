@@ -7,6 +7,7 @@ from src.solvers import CollocatedSolver
 from typing import Callable
 
 import taichi as ti
+import numpy as np
 
 
 class DrawingOption:
@@ -182,6 +183,11 @@ class GGUI_Simulation(BaseSimulation):
             self.should_create_video = subwindow.checkbox("Create Video", self.should_create_video)
             self.should_create_gif = subwindow.checkbox("Create GIF", self.should_create_gif)
 
+            _should_write_particle = self.should_write_particles
+            self.should_write_particles = subwindow.checkbox("Export Particles", self.should_write_particles)
+            if not _should_write_particle and self.should_write_particles:
+                self.dump_particles()
+
     def show_settings(self) -> None:
         """
         Show settings in a GGUI subwindow, this should be called once per generated frames
@@ -303,14 +309,19 @@ class GGUI_Simulation(BaseSimulation):
         point_color = (0.85, 0.85, 0.85)
         self.scene.point_light(pos=(-1.0, 1.5, -1.0), color=point_color)
         self.scene.point_light(pos=(-1.0, 1.5, 2.0), color=point_color)
-        # self.scene.point_light(pos=(2.0, 1.5, -1.0), color=point_color)
-        # self.scene.point_light(pos=(2.0, 1.5, 2.0), color=point_color)
         self.scene.set_camera(self.camera)
         self.scene.ambient_light((0.9, 0.9, 0.9))
         self.canvas.scene(self.scene)
 
         if self.should_write_to_disk and not self.is_paused and not self.is_showing_settings:
             self.video_manager.write_frame(self.window.get_image_buffer_as_numpy())
+
+        if self.should_write_particles and not self.is_paused and not self.is_showing_settings:
+            np_position = np.reshape(self.solver.position_p.to_numpy(), (self.solver.max_particles, 3))
+            # np_colors = np.reshape(self.solver.color_p.to_numpy(), (self.solver.max_particles, 3))
+            self.writer.add_vertex_pos(np_position[:, 0], np_position[:, 1], np_position[:, 2])
+            # self.writer.add_vertex_rgba(np_colors[:, 0], np_colors[:, 1], np_colors[:, 2], 1.0)
+            self.writer.export_frame_ascii(self.particle_frame_count, self.particle_output_path)
 
         self.window.show()
 
