@@ -52,11 +52,9 @@ class GGUI_Simulation(BaseSimulation):
 
         self.scene = self.window.get_scene()
         self.camera = ti.ui.Camera()
-        self.camera.position(0.5, 0.6, 1.95)
+        self.camera.position(0.5, 0.5, 1.95)
         self.camera.lookat(0.5, 0.4, 0.5)
-        # self.camera.up(0, 1, 0)
-        self.camera.fov(55)
-        # self.camera.projection_mode(ti.ui.ProjectionMode.Perspective)
+        self.camera.fov(65)
         self.scene.set_camera(self.camera)
 
         # Fields that hold certain colors, must be update in each draw call.
@@ -302,11 +300,14 @@ class GGUI_Simulation(BaseSimulation):
                 option.draw()
 
         self.camera.track_user_inputs(self.window, movement_speed=0.03, hold_key=ti.ui.RMB)
-        self.scene.point_light(pos=(0.5, 1.0, 0.5), color=(0.4, 0.4, 0.4))
-        self.scene.point_light(pos=(0.5, 1.0, 1.5), color=(0.4, 0.4, 0.4))
+        point_color = (0.85, 0.85, 0.85)
+        self.scene.point_light(pos=(-1.0, 1.5, -1.0), color=point_color)
+        self.scene.point_light(pos=(-1.0, 1.5, 2.0), color=point_color)
+        # self.scene.point_light(pos=(2.0, 1.5, -1.0), color=point_color)
+        # self.scene.point_light(pos=(2.0, 1.5, 2.0), color=point_color)
         self.scene.set_camera(self.camera)
-        self.scene.ambient_light((0.8, 0.8, 0.8))
-        self.canvas.scene(self.scene)  # NOTE: 3D
+        self.scene.ambient_light((0.9, 0.9, 0.9))
+        self.canvas.scene(self.scene)
 
         if self.should_write_to_disk and not self.is_paused and not self.is_showing_settings:
             self.video_manager.write_frame(self.window.get_image_buffer_as_numpy())
