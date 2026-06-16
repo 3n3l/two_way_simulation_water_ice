@@ -172,7 +172,7 @@ class GGUI_Simulation(BaseSimulation):
                 # This button toggles between saving frames and not saving frames.
                 self.should_write_to_disk = not self.should_write_to_disk
                 if self.should_write_to_disk:
-                    self.dump_frames()
+                    self.setup_video_manager()
                 else:
                     self.create_video()
             if subwindow.button(" Reset Particles "):
@@ -186,7 +186,7 @@ class GGUI_Simulation(BaseSimulation):
             _should_write_particle = self.should_write_particles
             self.should_write_particles = subwindow.checkbox("Export Particles", self.should_write_particles)
             if not _should_write_particle and self.should_write_particles:
-                self.dump_particles()
+                self.setup_ply_writer()
 
     def show_settings(self) -> None:
         """
@@ -216,7 +216,7 @@ class GGUI_Simulation(BaseSimulation):
             elif self.window.event.key in [ti.GUI.BACKSPACE, "s"]:
                 self.should_write_to_disk = not self.should_write_to_disk
                 if self.should_write_to_disk:
-                    self.dump_frames()
+                    self.setup_video_manager()
                 else:
                     self.create_video()
             elif self.window.event.key in [ti.GUI.SPACE, "p"]:

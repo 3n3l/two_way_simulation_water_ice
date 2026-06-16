@@ -6,7 +6,6 @@ from abc import abstractmethod
 from datetime import datetime
 
 import taichi as ti
-import numpy as np
 import math, os
 
 
@@ -58,6 +57,9 @@ class BaseSimulation:
         if not os.path.exists(self.frame_parent_dir):
             os.makedirs(self.frame_parent_dir)
 
+        # Create a parent directory, more directories will be created inside this
+        # directory that contain newly created .ply files
+        self.particle_frame_count = 0  # separate counter for .ply files
         self.particle_parent_dir = ".particles"
         if not os.path.exists(self.particle_parent_dir):
             os.makedirs(self.particle_parent_dir)
@@ -109,7 +111,7 @@ class BaseSimulation:
                 self.sampler.add_geometry(geometry)
             self.solver.substep()
 
-    def dump_frames(self) -> None:
+    def setup_video_manager(self) -> None:
         """
         Creates an output directory, a VideoManager in this directory and then dumps frames to this directory.
         """
@@ -140,7 +142,10 @@ class BaseSimulation:
         self.configuration = configuration
         self.reset()
 
-    def dump_particles(self) -> None:
+    def setup_ply_writer(self) -> None:
+        """
+        Creates a directory for the .ply files, then exports particle positions into this directory.
+        """
         date = datetime.now().strftime("%d%m%Y_%H%M%S")
         title = f"{self.video_prefix}_{date}"
         self.particle_output_path = f"{self.particle_parent_dir}/{title}/"
