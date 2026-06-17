@@ -11,12 +11,6 @@ class Classification:
 
 
 @dataclass
-class State:
-    Active = 0
-    Hidden = 1
-
-
-@dataclass
 class Simulation:
     """Defines parameters for the simulation."""
 

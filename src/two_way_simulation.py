@@ -1,6 +1,5 @@
-from src.constants import Classification, State, Water, Ice, Simulation
-from src.solvers import PressureSolver, HeatSolver
-from src.solvers import StaggeredSolver
+from src.constants import Classification, Water, Ice, Simulation
+from src.solvers import StaggeredSolver, PressureSolver, HeatSolver
 from typing import override
 
 import taichi.math as tm
@@ -69,7 +68,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.change_particle_material(index, geometry.material)
         self.velocity_p[index] = geometry.velocity
         self.position_p[index] = position
-        self.state_p[index] = State.Active
         self.B_p[index] = ti.Matrix.zero(ti.f32, self.d, self.d)
 
     @ti.func
@@ -121,10 +119,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
     @ti.kernel
     def particle_to_grid(self):
         for p in ti.ndrange(self.n_particles[None]):
-            # We ignore uninitialized particles:
-            if self.state_p[p] == State.Hidden:
-                continue
-
             # Compute D^(-1), which equals constant scaling for quadratic/cubic kernels.
             D_inv = 3 * self.inv_dx * self.inv_dx  # Cubic interpolation
 
@@ -348,7 +342,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
     @ti.kernel
     def compute_volumes(self):
         # FIXME: this seems to be wrong, the paper has a sum over CDFs
-        control_volume = 0.5 * (self.dx ** self.d)
+        control_volume = 0.5 * (self.dx**self.d)
         for i, j, k in self.classification_c:
             if self.classification_c[i, j, k] == Classification.Interior:
                 self.volume_x[i + 1, j, k] += control_volume
@@ -361,10 +355,6 @@ class TwoWay_MLSMPM(StaggeredSolver):
     @ti.kernel
     def grid_to_particle(self):
         for p in ti.ndrange(self.n_particles[None]):
-            # We ignore uninitialized particles:
-            if self.state_p[p] == State.Hidden:
-                continue
-
             # Lower left corner of the interpolation grid:
             base_x = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([0.5, 1.0, 1.0])), dtype=ti.i32)
             base_y = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.0, 0.5, 1.0])), dtype=ti.i32)

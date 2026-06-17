@@ -1,5 +1,5 @@
-from src.constants import Classification, State
 from src.configurations import Configuration
+from src.constants import Classification
 from abc import ABC
 
 import taichi as ti
@@ -51,7 +51,6 @@ class CollocatedSolver(ABC):
         self.velocity_p = ti.Vector.field(self.d, dtype=ti.f32, shape=max_particles)
         self.position_p = ti.Vector.field(self.d, dtype=ti.f32, shape=max_particles)
         self.color_p = ti.Vector.field(3, dtype=ti.f32, shape=max_particles)
-        self.state_p = ti.field(dtype=ti.f32, shape=max_particles)
         self.phase_p = ti.field(dtype=ti.f32, shape=max_particles)
         self.mass_p = ti.field(dtype=ti.f32, shape=max_particles)
 
@@ -144,7 +143,6 @@ class CollocatedSolver(ABC):
         self.ambient_temperature[None] = configuration.ambient_temperature
         self.gravity[None] = configuration.gravity
         self.dt[None] = configuration.dt / quality
-        self.state_p.fill(State.Hidden)
         self.position_p.fill([42, 42] if self.d == 2 else [42, 42, 42])
         self.n_particles[None] = 0
 

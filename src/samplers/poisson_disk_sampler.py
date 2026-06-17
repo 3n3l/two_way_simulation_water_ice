@@ -1,5 +1,4 @@
 from src.solvers import CollocatedSolver
-from src.constants import State
 from abc import ABC
 
 import taichi as ti
@@ -40,7 +39,7 @@ class PoissonDiskSampler(ABC):
         xs = (ti.max(0, x - 2), ti.min(self.n_grid, x + 3))  # pyright: ignore
         ys = (ti.max(0, y - 2), ti.min(self.n_grid, y + 3))  # pyright: ignore
         zs = (ti.max(0, z - 2), ti.min(self.n_grid, z + 3))  # pyright: ignore
-        distance_min = ti.math.inf # initialize as maximum possible distance
+        distance_min = ti.math.inf  # initialize as maximum possible distance
         for i, j, k in ti.ndrange(xs, ys, zs):
             if (index := self.background_grid[i, j, k]) != -1:
                 # We found a point and can compute the distance:
@@ -74,15 +73,10 @@ class PoissonDiskSampler(ABC):
         return (self._head[None] < self._tail[None]) and (self._head[None] < self.solver.max_particles - 1)
 
     @ti.func
-    def _initialize_grid(self, n_particles: ti.i32):  # pyright: ignore
+    def _initialize_grid(self):
         for i, j, k in ti.ndrange(self.n_grid, self.n_grid, self.n_grid):
             self.background_grid[i, j, k] = -1
-
-        for p in ti.ndrange(n_particles):
-            # We ignore uninitialized particles:
-            if self.solver.state_p[p] == State.Hidden:
-                continue
-
+        for p in ti.ndrange(self.solver.n_particles[None]):
             index = self._point_to_index(self.solver.position_p[p])
             self.background_grid[index] = p
 
@@ -114,22 +108,16 @@ class PoissonDiskSampler(ABC):
     @ti.kernel
     def add_geometry(self, geometry: ti.template()):  # pyright: ignore
         # Initialize background grid to the current positions:
-        self._initialize_grid(self._head[None])
-
-        # Reset pointers, for a fresh sample this will be (1, 0), in the running simulation
-        # this will reset to where we left of, allowing to add more particles:
-        self._tail[None] = self.solver.n_particles[None] + 1
-        self._head[None] = self.solver.n_particles[None]
+        self._initialize_grid()
 
         # Find a good initial point for this sample run:
         initial_point = self._generate_initial_point(geometry)
-        self.solver.add_particle(self._tail[None], initial_point, geometry)
-        self.solver.n_particles[None] += 2
-        self._head[None] += 1
-        self._tail[None] += 1
+        self.solver.add_particle(self.solver.n_particles[None], initial_point, geometry)
+        self._tail[None] = self.solver.n_particles[None] + 1
+        self._head[None] = self.solver.n_particles[None]
+        self.solver.n_particles[None] += 1
 
         while self._can_sample_more_points():
-            # print("ahhh -> ", self.solver.position_p[self._head[None]])
             prev_position = self.solver.position_p[self._head[None]]
             self._head[None] += 1  # Increment on each iteration
             for _ in range(self.k):
@@ -138,5 +126,5 @@ class PoissonDiskSampler(ABC):
                 if self._point_fits(next_position, geometry):
                     self.background_grid[next_index] = self._tail[None]
                     self.solver.add_particle(self._tail[None], next_position, geometry)
-                    self.solver.n_particles[None] += 1
+                    self.solver.n_particles[None] += 1  # Increment when point is found
                     self._tail[None] += 1  # Increment when point is found
