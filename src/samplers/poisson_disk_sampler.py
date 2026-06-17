@@ -20,14 +20,8 @@ class PoissonDiskSampler(ABC):
         self.dx = r / ti.sqrt(3)  # Cell size is bounded by this (3D)
         self.n_grid = int(1 / self.dx)  # Number of cells in the grid
 
-        # The width of the simulation boundary in grid nodes and offsets to
-        # guarantee that seeded particles always lie within the boundary:
-        self.wx = self.n_grid + (2 * solver.boundary_width)
-        self.wy = self.n_grid + (2 * solver.boundary_width)
-        self.wz = self.n_grid + (2 * solver.boundary_width)
-
         # Initialize an n-dimension background grid to store samples:
-        self.background_grid = ti.field(dtype=ti.i32, shape=(self.wx, self.wy, self.wz), offset=solver.w_offset)
+        self.background_grid = ti.field(dtype=ti.i32, shape=(self.n_grid, self.n_grid, self.n_grid))
 
         # We can't use a resizable list, so we point to the head and tail:
         self._head = ti.field(ti.i32, shape=())
