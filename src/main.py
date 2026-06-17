@@ -45,7 +45,7 @@ def main():
     for configuration in configurations:
         if (volume := configuration.volume()) > max_volume:
             max_volume = volume
-    max_particles = math.ceil(d * max_volume / (vol_0))
+    max_particles = math.ceil(max_volume / (vol_0))
 
     solver = TwoWay_MLSMPM(max_particles=max_particles, n_dimensions=d, n_grid=n_grid, vol_0=vol_0)
     poisson_disk_sampler = PoissonDiskSampler(solver=solver, r=radius*1.5, k=30)
