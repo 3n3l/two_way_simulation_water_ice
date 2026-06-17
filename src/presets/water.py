@@ -5,7 +5,7 @@ water_presets = [
     Configuration(
         name="Waterjet",
         information="Water",
-        dt=1e-3,
+        dt=3e-3,
         geometries=[
             # *[
             #     Rectangle(
@@ -24,8 +24,8 @@ water_presets = [
                     is_continuous=True,
                     frame_threshold=i,
                     center=(0.5, 0.985, 0.5),
-                    velocity=(0, -3, 0),
-                    radius=0.03,
+                    velocity=(0, -4, 0),
+                    radius=0.04,
                 )
                 for i in range(3, 203)
             ],
@@ -70,7 +70,7 @@ water_presets = [
     Configuration(
         name="Dam Break",
         information="Water",
-        dt=1e-3,
+        dt=3e-3,
         geometries=[
             Rectangle(
                 material=Water,  # pyright: ignore
@@ -83,7 +83,7 @@ water_presets = [
     Configuration(
         name="Dam Break, Centered",
         information="Water",
-        dt=1e-3,
+        dt=3e-3,
         geometries=[
             Rectangle(
                 material=Water,  # pyright: ignore
@@ -96,7 +96,7 @@ water_presets = [
     Configuration(
         name="Spherefall, Water",
         information="Water",
-        dt=1e-3,
+        dt=3e-3,
         geometries=[
             Circle(
                 material=Water,  # pyright: ignore
