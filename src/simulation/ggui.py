@@ -1,24 +1,11 @@
-from src.constants import ColorRGB, State, Simulation
 from src.configurations import Configuration
-from src.samplers import PoissonDiskSampler
 from src.simulation import BaseSimulation
+from src.constants import ColorRGB
+from src.samplers import PoissonDiskSampler
 from src.solvers import CollocatedSolver
-
-from typing import Callable
 
 import taichi as ti
 import numpy as np
-
-
-class DrawingOption:
-    """
-    This holds name, state and a callable for drawing a chosen foreground/background.
-    """
-
-    def __init__(self, name: str, is_active: bool, call_draw: Callable) -> None:
-        self.is_active = is_active
-        self.draw = call_draw
-        self.name = name
 
 
 @ti.data_oriented
@@ -49,6 +36,7 @@ class GGUI_Simulation(BaseSimulation):
         # GGUI.
         self.window = ti.ui.Window(name, res, fps_limit=self.fps)
         self.canvas = self.window.get_canvas()
+        self.canvas.set_background_color(ColorRGB.Background)
         self.gui = self.window.get_gui()
 
         self.scene = self.window.get_scene()
@@ -57,37 +45,6 @@ class GGUI_Simulation(BaseSimulation):
         self.camera.lookat(0.5, 0.4, 0.5)
         self.camera.fov(65)
         self.scene.set_camera(self.camera)
-
-        # Fields that hold certain colors, must be update in each draw call.
-        self.temperature_colors_p = ti.Vector.field(3, dtype=ti.f32, shape=self.solver.max_particles)
-        # TODO: also move the phase colors here, then only update the phase colors when drawing the phase?!
-
-        # Scratch field, will be updated with the visible cells of the offset fields of the solver.
-        self.scratch_field = ti.field(dtype=ti.f32, shape=(self.solver.n_grid, self.solver.n_grid))
-
-        # Construct a vector field as a heat map:
-        self.heat_map_length = len(ColorRGB.HeatMap)
-        self.heat_map = ti.Vector.field(3, dtype=ti.f32, shape=self.heat_map_length)
-        for i, color in enumerate(ColorRGB.HeatMap):
-            self.heat_map[i] = color
-
-        # Values to control the drawing of the temperature:
-        # TODO: these should be moved somewhere else
-        self.should_normalize_temperature = False
-
-        # Foreground Options:
-        self.foreground_options = [
-            DrawingOption("Temperature", False, self.draw_temperature_p),
-            # DrawingOption("Background", False, lambda: None),
-            DrawingOption("Phase", True, self.draw_phase_p),
-        ]
-
-        # Background Options:
-        self.background_options = [
-            # DrawingOption("Classification", False, lambda: self.show_contour(self.solver.classification_c)),
-            # DrawingOption("Temperature", False, lambda: self.show_contour(self.solver.temperature_c)),
-            DrawingOption("Background", True, lambda: self.canvas.set_background_color(ColorRGB.Background)),
-        ]
 
     def show_configurations(self) -> None:
         """
@@ -105,28 +62,6 @@ class GGUI_Simulation(BaseSimulation):
                 configuration = self.configurations[_id]
                 self.load_configuration(configuration)
                 self.is_paused = True
-
-    def show_foreground_options(self) -> None:
-        """
-        Show the foreground drawing options as checkboxes inside own subwindow.
-        """
-        with self.gui.sub_window("Foreground", 0.67, 0.01, 0.32, 0.16) as subwindow:
-            for option in self.foreground_options:
-                if subwindow.checkbox(option.name, option.is_active):
-                    for _option in self.foreground_options:
-                        _option.is_active = False
-                    option.is_active = True
-
-    def show_background_options(self) -> None:
-        """
-        Show the background drawing options as checkboxes inside own subwindow.
-        """
-        with self.gui.sub_window("Background", 0.67, 0.18, 0.32, 0.16) as subwindow:
-            for option in self.background_options:
-                if subwindow.checkbox(option.name, option.is_active):
-                    for _option in self.background_options:
-                        _option.is_active = False
-                    option.is_active = True
 
     def show_parameters(self) -> None:
         """
@@ -167,7 +102,7 @@ class GGUI_Simulation(BaseSimulation):
         """
         Show a set of buttons in the subwindow, this mainly holds functions to control the simulation.
         """
-        with self.gui.sub_window("Settings", 0.67, 0.35, 0.32, 0.3) as subwindow:
+        with self.gui.sub_window("Settings", 0.67, 0.01, 0.32, 0.64) as subwindow:
             if subwindow.button(" Stop recording  " if self.should_write_to_disk else " Start recording "):
                 # This button toggles between saving frames and not saving frames.
                 self.should_write_to_disk = not self.should_write_to_disk
@@ -198,8 +133,6 @@ class GGUI_Simulation(BaseSimulation):
             return  # don't bother
 
         self.is_showing_settings = True
-        self.show_foreground_options()
-        self.show_background_options()
         self.show_configurations()
         self.show_parameters()
         self.show_buttons()
@@ -224,93 +157,20 @@ class GGUI_Simulation(BaseSimulation):
             elif self.window.event.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]:
                 self.window.running = False  # Stop the simulation
 
-    @ti.kernel
-    def update_temperature_p(self):
-        max_temperature = Simulation.MaxTemperature
-        min_temperature = Simulation.MinTemperature
-
-        # Get min, max values for normalization:
-        if self.should_normalize_temperature:
-            for p in self.temperature_colors_p:
-                if self.solver.state_p[p] == State.Hidden:
-                    continue  # ignore uninitialized particles
-                temperature = self.solver.temperature_p[p]
-                if temperature > max_temperature:
-                    max_temperature = temperature
-                elif temperature < min_temperature:
-                    min_temperature = temperature
-
-        # Affine combination of the colors based on min, max values and the temperature:
-        max_index, min_index = self.heat_map_length - 1, 0
-        factor = ti.cast(max_index, ti.f32)
-        for p in self.temperature_colors_p:
-            if self.solver.state_p[p] == State.Hidden:
-                continue  # ignore uninitialized particles
-            t = self.solver.temperature_p[p]
-            a = (t - min_temperature) / (max_temperature - min_temperature)
-            color1 = self.heat_map[ti.max(min_index, ti.floor(factor * a, ti.i8))]
-            color2 = self.heat_map[ti.min(max_index, ti.ceil(factor * a, ti.i8))]
-            self.temperature_colors_p[p] = ((1 - a) * color1) + (a * color2)
-
-    def draw_temperature_p(self) -> None:
-        """
-        Draw the temperature for each particle.
-        """
-        # self.update_temperature_p()
-        # self.canvas.circles(
-        #     per_vertex_color=self.temperature_colors_p,
-        #     centers=self.solver.position_p,
-        #     radius=self.radius,
-        # )
-        self.scene.particles(
-            per_vertex_color=self.temperature_colors_p,
-            centers=self.solver.position_p,
-            radius=self.radius,
-        )
-
-    def draw_phase_p(self) -> None:
-        """
-        Draw the phase for each particle.
-        """
-        # self.canvas.circles(
-        #     per_vertex_color=self.solver.color_p,
-        #     centers=self.solver.position_p,
-        #     radius=self.radius,
-        # )
+    def render(self) -> None:
+        """Render the simulation."""
         self.scene.particles(
             per_vertex_color=self.solver.color_p,
             centers=self.solver.position_p,
             radius=self.radius,
         )
 
-    @ti.kernel
-    def update_scratch_field(self, scalar_field: ti.template()):  # pyright: ignore
-        for i, j, k in ti.ndrange(self.solver.n_grid, self.solver.n_grid, self.solver.n_grid):
-            self.scratch_field[i, j, k] = scalar_field[i, j, k]
-
-    def show_contour(self, scalar_field) -> None:
-        """
-        Show the contour of a given scalar field.
-        """
-        # Because the fields of the solver are offset to move the boundary beyond the visible
-        # portion of the window, we need to remove the invisible parts, otherwise the contour
-        # will be offset.
-        self.update_scratch_field(scalar_field)
-        self.canvas.contour(self.scratch_field, cmap_name="magma", normalize=True)
-
-    def render(self) -> None:
-        """Render the simulation."""
-        # Draw chosen foreground/background, NOTE: foreground must be drawn last.
-        for option in self.background_options + self.foreground_options:
-            if option.is_active:
-                option.draw()
-
         self.camera.track_user_inputs(self.window, movement_speed=0.03, hold_key=ti.ui.RMB)
         point_color = (0.85, 0.85, 0.85)
         self.scene.point_light(pos=(-1.0, 1.5, -1.0), color=point_color)
         self.scene.point_light(pos=(-1.0, 1.5, 2.0), color=point_color)
         self.scene.set_camera(self.camera)
-        self.scene.ambient_light((0.9, 0.9, 0.9))
+        self.scene.ambient_light((0.8, 0.8, 0.8))
         self.canvas.scene(self.scene)
 
         if self.should_write_to_disk and not self.is_paused and not self.is_showing_settings:
