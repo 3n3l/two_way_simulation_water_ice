@@ -15,9 +15,7 @@ class PressureSolver:
         dt_inv_dx_sqrd = self.solver.dt[None] * self.solver.inv_dx * self.solver.inv_dx
         for i, j, k in ti.ndrange(self.solver.wx, self.solver.wy, self.solver.wz):
             diagonal = 0.0  # to keep max_num_triplets as low as possible
-            # idx = (i * self.solver.wx) + j  # raveled index, 2D
             idx = i + self.solver.wx * (j + (self.solver.wy * k))  # raveled index, 3D
-            # idx = i + self.solver.wx * j + self.solver.wx * self.solver.wy * k  # raveled index, 3D
 
             # We enforce homogeneous Dirichlet pressure boundary conditions at CELLS that have been marked as empty.
             if not self.solver.is_interior(i, j, k):
@@ -80,7 +78,6 @@ class PressureSolver:
     def apply_pressure(self, pressure: ti.types.ndarray()):  # pyright: ignore
         coefficient = self.solver.dt[None] * self.solver.inv_dx
         for i, j, k in ti.ndrange(self.solver.wx, self.solver.wy, self.solver.wz):
-            # idx = i * self.solver.wx + j  # raveled index, 2D
             idx = i + self.solver.wx * (j + (self.solver.wy * k))  # raveled index, 3D
 
             if self.solver.is_interior(i - 1, j, k) or self.solver.is_interior(i, j, k):

@@ -20,12 +20,8 @@ class CollocatedSolver(ABC):
         self.boundary_width = 5
         self.wx = self.n_grid + self.boundary_width + self.boundary_width
         self.wy = self.wx
-        self.wz = 0 if self.d == 0 else self.wx
+        self.wz = self.wx
         self.w_offset = (-self.boundary_width, -self.boundary_width, -self.boundary_width)
-        # if self.d == 2:
-        #     self.w_offset = (-self.boundary_width, -self.boundary_width)
-        # else:
-        #     self.w_offset = (-self.boundary_width, -self.boundary_width, -self.boundary_width)
         self.negative_boundary = -self.boundary_width
         self.positive_boundary = self.n_grid + self.boundary_width
 
