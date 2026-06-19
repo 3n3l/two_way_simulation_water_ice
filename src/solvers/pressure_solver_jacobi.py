@@ -8,7 +8,7 @@ class PressureSolver_Jacobi:
     def __init__(self, solver: StaggeredSolver) -> None:
         self.solver = solver
 
-        self.jacobi_iter = 100
+        self.jacobi_iter = 500
         self.jacobi_weight = 1.0
         self.rho = 1.0  # TODO: change to volume based rho
 
