@@ -54,7 +54,8 @@ class PoissonDiskSampler(ABC):
 
     @ti.func
     def _point_to_index(self, point: ti.template()) -> ti.Vector:  # pyright: ignore
-        return ti.cast((point * self.n_grid), dtype=ti.i32)  # pyright: ignore
+        _index = ti.cast((point * self.n_grid), dtype=ti.i32)  # pyright: ignore
+        return ti.math.clamp(_index, 0, self.n_grid)
 
     @ti.func
     def _point_fits(self, point: ti.template(), geometry: ti.template()) -> bool:  # pyright: ignore
