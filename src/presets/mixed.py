@@ -5,7 +5,7 @@ mixed_presets = [
     Configuration(
         name="Melting Ice Cube, Floating",
         information="Ice -> Water",
-        dt=5e-4,
+        dt=3e-4,
         geometries=[
             Rectangle(
                 material=Ice,  # pyright: ignore
@@ -21,7 +21,7 @@ mixed_presets = [
     Configuration(
         name="Melting Ice Ball, Floating",
         information="Ice -> Water",
-        dt=5e-4,
+        dt=3e-4,
         geometries=[
             Circle(
                 velocity=(0, 0, 0),
@@ -37,7 +37,7 @@ mixed_presets = [
     Configuration(
         name="Melting Ice Ball",
         information="Ice -> Water",
-        dt=5e-4,
+        dt=3e-4,
         geometries=[
             Circle(
                 velocity=(0, 0, 0),
@@ -51,7 +51,7 @@ mixed_presets = [
         gravity=0.0,
     ),
     Configuration(
-        dt=5e-4,
+        dt=3e-4,
         name="Melting Ice Cube",
         information="Ice -> Water",
         ambient_temperature=100.0,
@@ -242,7 +242,7 @@ mixed_presets = [
     #     ],
     # ),
     Configuration(
-        dt=5e-4,
+        dt=3e-4,
         name="Spherefall, Water vs. Ice",
         information="Water, Ice",
         ambient_temperature=0.0,

@@ -5,29 +5,40 @@ water_presets = [
     Configuration(
         name="Waterjet",
         information="Water",
-        dt=3e-3,
+        dt=5e-3,
         geometries=[
-            # *[
-            #     Rectangle(
-            #         material=Water,  # pyright: ignore
-            #         is_continuous=True,
-            #         frame_threshold=i,
-            #         lower_left=(0.47, 0.94, 0.47),
-            #         velocity=(0, -2, 0),
-            #         size=(0.06, 0.06, 0.6),
-            #     )
-            #     for i in range(3, 203)
-            # ],
             *[
                 Circle(
                     material=Water,  # pyright: ignore
                     is_continuous=True,
                     frame_threshold=i,
-                    center=(0.5, 0.985, 0.5),
-                    velocity=(0, -4, 0),
+                    center=(0.5, 0.98, 0.5),
+                    velocity=(0, -3, 0),
                     radius=0.04,
                 )
-                for i in range(3, 203)
+                for i in range(1, 201)
+            ],
+            *[
+                Circle(
+                    material=Water,  # pyright: ignore
+                    is_continuous=True,
+                    frame_threshold=i,
+                    center=(0.5, 0.975, 0.5),
+                    velocity=(0, -3, 0),
+                    radius=0.04,
+                )
+                for i in range(2, 201)
+            ],
+            *[
+                Circle(
+                    material=Water,  # pyright: ignore
+                    is_continuous=True,
+                    frame_threshold=i,
+                    center=(0.5, 0.97, 0.5),
+                    velocity=(0, -3, 0),
+                    radius=0.04,
+                )
+                for i in range(3, 201)
             ],
         ],
     ),
@@ -70,7 +81,7 @@ water_presets = [
     Configuration(
         name="Dam Break",
         information="Water",
-        dt=3e-3,
+        dt=5e-3,
         geometries=[
             Rectangle(
                 material=Water,  # pyright: ignore
@@ -83,7 +94,7 @@ water_presets = [
     Configuration(
         name="Dam Break, Centered",
         information="Water",
-        dt=3e-3,
+        dt=5e-3,
         geometries=[
             Rectangle(
                 material=Water,  # pyright: ignore
@@ -96,7 +107,7 @@ water_presets = [
     Configuration(
         name="Spherefall, Water",
         information="Water",
-        dt=3e-3,
+        dt=5e-3,
         geometries=[
             Circle(
                 material=Water,  # pyright: ignore

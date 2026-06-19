@@ -17,4 +17,23 @@ ice_presets = [
             ),
         ],
     ),
+    Configuration(
+        name="Snowball Hits Snowball",
+        dt=5e-4,
+        gravity=-9.81,
+        geometries=[
+            Circle(
+                material=Ice,  # pyright: ignore
+                center=(0.1, 0.5, 0.5),
+                velocity=(3, 0, 0),
+                radius=0.08,
+            ),
+            Circle(
+                material=Ice,  # pyright: ignore
+                center=(0.9, 0.56, 0.5),
+                velocity=(-6, 0, 0),
+                radius=0.08,
+            ),
+        ],
+    ),
 ]
