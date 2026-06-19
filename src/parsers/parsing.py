@@ -23,7 +23,7 @@ parser.add_argument(
     "-q",
     "--quality",
     default=0,
-    choices={-2, -1, 0, 1, 2},
+    choices={-3, -2, -1, 0, 1, 2, 3},
     nargs="?",
     help=quality_help,
     type=int,
