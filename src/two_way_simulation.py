@@ -1,5 +1,5 @@
 from src.constants import Classification, Water, Ice, Simulation
-from src.solvers import StaggeredSolver, PressureSolver, HeatSolver
+from src.solvers import StaggeredSolver, PressureSolver_Sparse, PressureSolver_Jacobi, HeatSolver
 from typing import override
 
 import taichi.math as tm
@@ -42,7 +42,8 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.latent_heat_p = ti.field(dtype=ti.f32, shape=max_particles)  # U_p
 
         # Poisson solvers for pressure and heat.
-        self.pressure_solver = PressureSolver(self)
+        # self.pressure_solver = PressureSolver_Sparse(self)
+        self.pressure_solver = PressureSolver_Jacobi(self)
         self.heat_solver = HeatSolver(self)
 
         self.cubic_neighbors = (4,) * self.d
@@ -258,6 +259,24 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.JE_c[i, j, k] /= mass_c
                 self.JP_c[i, j, k] /= mass_c
 
+    # @ti.kernel
+    # def classify_cells(self):
+    #     for i, j, k in self.classification_c:
+    #         # Reset all the cells that don't belong to the colliding boundary:
+    #         is_colliding = not (0 <= i < self.n_grid)
+    #         is_colliding |= not (0 <= j < self.n_grid)
+    #         is_colliding |= not (0 <= k < self.n_grid)
+    #         if is_colliding:
+    #             self.classification_c[i, j, k] = Classification.Colliding
+    #         else:
+    #             self.classification_c[i, j, k] = Classification.Empty
+    #
+    #     for p in self.velocity_p:
+    #         # Find the nearest cell and set it to interior:
+    #         i, j, k = ti.floor(self.position_p[p] * self.inv_dx, dtype=ti.i32)  # pyright: ignore
+    #         if not self.is_colliding(i, j, k):  # pyright: ignore
+    #             self.classification_c[i, j, k] = Classification.Interior
+
     @ti.kernel
     def classify_cells(self):
         # A face is colliding if the level set computed by any collision object is negative at the face center.
@@ -430,5 +449,5 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.classify_cells()
         self.compute_volumes()
         self.pressure_solver.solve()
-        self.heat_solver.solve()
+        # self.heat_solver.solve()
         self.grid_to_particle()

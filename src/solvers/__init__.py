@@ -1,4 +1,5 @@
 from src.solvers.collocated_solver import CollocatedSolver
 from src.solvers.staggered_solver import StaggeredSolver
-from src.solvers.pressure_solver import PressureSolver
+from src.solvers.pressure_solver_sparse import PressureSolver_Sparse
+from src.solvers.pressure_solver_jacobi import PressureSolver_Jacobi
 from src.solvers.heat_solver import HeatSolver

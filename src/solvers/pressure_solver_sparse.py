@@ -5,7 +5,7 @@ import taichi as ti
 
 
 @ti.data_oriented
-class PressureSolver:
+class PressureSolver_Sparse:
     def __init__(self, solver: StaggeredSolver) -> None:
         self.w_cells = solver.wx * solver.wy * solver.wz
         self.solver = solver
