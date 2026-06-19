@@ -157,7 +157,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             # Eliminate dilational component explicitly [Jiang 2014, Eqn. 8], then
             # compute deviatoric Piola-Kirchhoff stress P(F) [Jiang 2016, Eqn. 52]:
-            FE_deviatoric = self.FE_p[p] * (self.JE_p[p] ** (1 / self.d))
+            FE_deviatoric = self.FE_p[p] * (self.JE_p[p] ** (1 / self.d))  # FIXME: or is this ^{-1/d}?
             U_deviatoric, _, V_deviatoric = ti.svd(FE_deviatoric)
             piola_kirchhoff = FE_deviatoric - (U_deviatoric @ V_deviatoric.transpose())
             piola_kirchhoff = (2 * mu * piola_kirchhoff) @ self.FE_p[p].transpose()  # pyright: ignore
@@ -193,19 +193,12 @@ class TwoWay_MLSMPM(StaggeredSolver):
             velocity_x, velocity_y, velocity_z = self.velocity_p[p][0], self.velocity_p[p][1], self.velocity_p[p][2]
             mass_p = self.mass_p[p]
             for offset in ti.static(ti.grouped(ti.ndrange(*self.cubic_neighbors))):
-                # FIXME: this is not working without static outer loop on macOS?!
                 weight_c, weight_x, weight_y, weight_z = 1.0, 1.0, 1.0, 1.0
                 for i in ti.static(ti.ndrange(self.d)):
                     weight_c *= w_c[offset[i]][i]
                     weight_x *= w_x[offset[i]][i]
                     weight_y *= w_y[offset[i]][i]
                     weight_z *= w_z[offset[i]][i]
-
-                # offset = ti.Vector([i, j, k])
-                # weight_c = w_c[i][0] * w_c[j][1] * w_c[k][2]
-                # weight_x = w_x[i][0] * w_x[j][1] * w_x[k][2]
-                # weight_y = w_y[i][0] * w_y[j][1] * w_y[k][2]
-                # weight_z = w_z[i][0] * w_z[j][1] * w_z[k][2]
 
                 dpos_x = ti.cast(offset - dist_x, ti.f32) * self.dx
                 dpos_y = ti.cast(offset - dist_y, ti.f32) * self.dx
