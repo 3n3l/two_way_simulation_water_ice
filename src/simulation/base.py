@@ -106,7 +106,8 @@ class BaseSimulation:
         while self.has_loadable_geometry(self.continuous_geometries):
             loadable_geometries.append(self.continuous_geometries.pop(0))
 
-        for _ in range(math.ceil((1 / (self.fps * self.solver.dt[None])))):
+        alpha = 0.5  # control speed of simulation, TODO: make slider out of this
+        for _ in range(math.ceil((alpha / (self.fps * self.solver.dt[None])))):
             for geometry in loadable_geometries:
                 self.sampler.add_geometry(geometry)
             self.solver.substep()
