@@ -49,6 +49,30 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.quadratic_neighbors = (3,) * self.d
 
     @ti.func
+    def cubic_kernel(self, x):
+        w = ti.Vector([0.0 for _ in ti.static(ti.ndrange(3))])
+        for i in ti.static(ti.ndrange(3)):
+            if 0.0 <= x[i] < 1.0:
+                w[i] = (1 / 2) * (x[i] ** 3) - (x[i] ** 2) + (2 / 3)
+            elif 1.0 <= x[i] < 2.0:
+                w[i] = -(1 / 6) * (x[i] ** 3) + (x[i] ** 2) - (2 * x[i]) + (4 / 3)
+            else:
+                w[i] = 0.0
+        return w
+
+    @ti.func
+    def quadratic_kernel(self, x):
+        w = ti.Vector([0.0 for _ in ti.static(ti.ndrange(3))])
+        for i in ti.static(ti.ndrange(3)):
+            if x[i] < 0.5:
+                w[i] = 0.75 - x[i] ** 2
+            elif x[i] < 1.5:
+                w[i] = 0.5 * (1.5 - x[i]) ** 2
+            else:
+                w[i] = 0.0
+        return w
+
+    @ti.func
     @override
     def left_hand_offset(self, i: ti.i32, j: ti.i32, k: ti.i32) -> ti.f32:  # pyright: ignore
         # lambda_c approaches infinity for incompressible materials, this way we end up with the
@@ -172,57 +196,144 @@ class TwoWay_MLSMPM(StaggeredSolver):
             affine_y = affine @ ti.Vector([0, 1, 0])  # pyright: ignore
             affine_z = affine @ ti.Vector([0, 0, 1])  # pyright: ignore
 
-            # Lower left corner of the interpolation grid:
-            position_c = self.position_p[p] * self.inv_dx
-            base_x = ti.floor((position_c - ti.Vector([1.0, 1.5, 1.5])), dtype=ti.i32)
-            base_y = ti.floor((position_c - ti.Vector([1.5, 1.0, 1.5])), dtype=ti.i32)
-            base_z = ti.floor((position_c - ti.Vector([1.5, 1.5, 1.0])), dtype=ti.i32)
-            base_c = ti.floor((position_c - ti.Vector([2.0, 2.0, 2.0])), dtype=ti.i32)
-
-            # Distance between lower left corner and particle position:
-            dist_x = position_c - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
-            dist_y = position_c - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
-            dist_z = position_c - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
-            dist_c = position_c - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
-
-            # Cubic kernels:
-            w_x = self.compute_cubic_kernel(dist_x)
-            w_y = self.compute_cubic_kernel(dist_y)
-            w_z = self.compute_cubic_kernel(dist_z)
-            w_c = self.compute_cubic_kernel(dist_c)
+            # # Lower left corner of the interpolation grid:
+            # position_c = self.position_p[p] * self.inv_dx
+            # base_x = ti.floor((position_c - ti.Vector([1.0, 1.5, 1.5])), dtype=ti.i32)
+            # base_y = ti.floor((position_c - ti.Vector([1.5, 1.0, 1.5])), dtype=ti.i32)
+            # base_z = ti.floor((position_c - ti.Vector([1.5, 1.5, 1.0])), dtype=ti.i32)
+            # base_c = ti.floor((position_c - ti.Vector([2.0, 2.0, 2.0])), dtype=ti.i32)
+            #
+            # # Distance between lower left corner and particle position:
+            # dist_x = position_c - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
+            # dist_y = position_c - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
+            # dist_z = position_c - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
+            # dist_c = position_c - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
+            #
+            # # Cubic kernels:
+            # w_x = self.compute_cubic_kernel(dist_x)
+            # w_y = self.compute_cubic_kernel(dist_y)
+            # w_z = self.compute_cubic_kernel(dist_z)
+            # w_c = self.compute_cubic_kernel(dist_c)
 
             velocity_x, velocity_y, velocity_z = self.velocity_p[p][0], self.velocity_p[p][1], self.velocity_p[p][2]
             mass_p = self.mass_p[p]
-            for offset in ti.static(ti.grouped(ti.ndrange(*self.cubic_neighbors))):
-                weight_c, weight_x, weight_y, weight_z = 1.0, 1.0, 1.0, 1.0
-                for i in ti.static(ti.ndrange(self.d)):
-                    weight_c *= w_c[offset[i]][i]
-                    weight_x *= w_x[offset[i]][i]
-                    weight_y *= w_y[offset[i]][i]
-                    weight_z *= w_z[offset[i]][i]
+            # for offset in ti.static(ti.grouped(ti.ndrange(*self.cubic_neighbors))):
+            #     weight_c, weight_x, weight_y, weight_z = 1.0, 1.0, 1.0, 1.0
+            #     for i in ti.static(ti.ndrange(self.d)):
+            #         weight_c *= w_c[offset[i]][i]
+            #         weight_x *= w_x[offset[i]][i]
+            #         weight_y *= w_y[offset[i]][i]
+            #         weight_z *= w_z[offset[i]][i]
+            #
+            #     dpos_x = ti.cast(offset - dist_x, ti.f32) * self.dx
+            #     dpos_y = ti.cast(offset - dist_y, ti.f32) * self.dx
+            #     dpos_z = ti.cast(offset - dist_z, ti.f32) * self.dx
+            #
+            #     # Rasterize to cell centers:
+            #     self.temperature_c[base_c + offset] += weight_c * mass_p * self.temperature_p[p]
+            #     self.inv_lambda_c[base_c + offset] += weight_c * (mass_p / la)
+            #     self.capacity_c[base_c + offset] += weight_c * mass_p * self.capacity_p[p]
+            #     self.mass_c[base_c + offset] += weight_c * mass_p
+            #     self.JE_c[base_c + offset] += weight_c * mass_p * self.JE_p[p]
+            #     self.JP_c[base_c + offset] += weight_c * mass_p * self.JP_p[p]
+            #
+            #     # Rasterize to cell faces:
+            #     self.conductivity_x[base_x + offset] += weight_x * mass_p * self.conductivity_p[p]
+            #     self.conductivity_y[base_y + offset] += weight_y * mass_p * self.conductivity_p[p]
+            #     self.conductivity_z[base_z + offset] += weight_z * mass_p * self.conductivity_p[p]
+            #     self.velocity_x[base_x + offset] += weight_x * (mass_p * velocity_x + affine_x @ dpos_x)
+            #     self.velocity_y[base_y + offset] += weight_y * (mass_p * velocity_y + affine_y @ dpos_y)
+            #     self.velocity_z[base_z + offset] += weight_z * (mass_p * velocity_z + affine_z @ dpos_z)
+            #     self.mass_x[base_x + offset] += weight_x * mass_p
+            #     self.mass_y[base_y + offset] += weight_y * mass_p
+            #     self.mass_z[base_z + offset] += weight_z * mass_p
 
-                dpos_x = ti.cast(offset - dist_x, ti.f32) * self.dx
-                dpos_y = ti.cast(offset - dist_y, ti.f32) * self.dx
-                dpos_z = ti.cast(offset - dist_z, ti.f32) * self.dx
+            position_c = self.position_p[p] * self.inv_dx
+            base = ti.cast(ti.floor(position_c), dtype=ti.i32)
+            dist = position_c - base
 
-                # Rasterize to cell centers:
-                self.temperature_c[base_c + offset] += weight_c * mass_p * self.temperature_p[p]
-                self.inv_lambda_c[base_c + offset] += weight_c * (mass_p / la)
-                self.capacity_c[base_c + offset] += weight_c * mass_p * self.capacity_p[p]
-                self.mass_c[base_c + offset] += weight_c * mass_p
-                self.JE_c[base_c + offset] += weight_c * mass_p * self.JE_p[p]
-                self.JP_c[base_c + offset] += weight_c * mass_p * self.JP_p[p]
+            # # Index on sides
+            # idx_side = [base - 2, base - 1, base, base + 1, base + 2]
+            # # Weight on sides
+            # w_side = [
+            #     self.cubic_kernel(2.0 + dist),
+            #     self.cubic_kernel(1.0 + dist),
+            #     self.cubic_kernel(dist),
+            #     self.cubic_kernel(1.0 - dist),
+            #     self.cubic_kernel(2.0 - dist),
+            # ]
+            #
+            # # Index on centers
+            # idx_center = [base - 2, base - 1, base, base + 1]
+            # # Weight on centers
+            # w_center = [
+            #     self.cubic_kernel(1.5 + dist),
+            #     self.cubic_kernel(0.5 + dist),
+            #     self.cubic_kernel(ti.abs(0.5 - dist)),
+            #     self.cubic_kernel(1.5 - dist),
+            # ]
 
-                # Rasterize to cell faces:
-                self.conductivity_x[base_x + offset] += weight_x * mass_p * self.conductivity_p[p]
-                self.conductivity_y[base_y + offset] += weight_y * mass_p * self.conductivity_p[p]
-                self.conductivity_z[base_z + offset] += weight_z * mass_p * self.conductivity_p[p]
-                self.velocity_x[base_x + offset] += weight_x * (mass_p * velocity_x + affine_x @ dpos_x)
-                self.velocity_y[base_y + offset] += weight_y * (mass_p * velocity_y + affine_y @ dpos_y)
-                self.velocity_z[base_z + offset] += weight_z * (mass_p * velocity_z + affine_z @ dpos_z)
-                self.mass_x[base_x + offset] += weight_x * mass_p
-                self.mass_y[base_y + offset] += weight_y * mass_p
-                self.mass_z[base_z + offset] += weight_z * mass_p
+            # Index on sides
+            idx_side = [base - 1, base, base + 1, base + 2]
+            # Weight on sides
+            w_side = [
+                self.quadratic_kernel(1.0 + dist),
+                self.quadratic_kernel(dist),
+                self.quadratic_kernel(1.0 - dist),
+                self.quadratic_kernel(2.0 - dist),
+            ]
+
+            # Index on centers
+            idx_center = [base - 1, base, base + 1]
+            # Weight on centers
+            w_center = [
+                self.quadratic_kernel(0.5 + dist),
+                self.quadratic_kernel(ti.abs(0.5 - dist)),
+                self.quadratic_kernel(1.5 - dist),
+            ]
+
+            # for i, j, k in ti.static(ti.ndrange(4, 4, 4)):
+            for i, j, k in ti.static(ti.ndrange(3, 3, 3)):
+                index = (idx_center[i].x, idx_center[j].y, idx_center[k].z)
+                dpos = (ti.Vector([i - 0.5, j - 0.5, k - 0.5]) - dist) * self.dx
+                w = w_center[i].x * w_center[j].y * w_center[k].z
+
+                self.temperature_c[index] += w * mass_p * self.temperature_p[p]
+                self.inv_lambda_c[index] += w * (mass_p / la)
+                self.capacity_c[index] += w * mass_p * self.capacity_p[p]
+                self.mass_c[index] += w * mass_p
+                self.JE_c[index] += w * mass_p * self.JE_p[p]
+                self.JP_c[index] += w * mass_p * self.JP_p[p]
+
+            # for i, j, k in ti.static(ti.ndrange(5, 4, 4)):
+            for i, j, k in ti.static(ti.ndrange(4, 3, 3)):
+                index = (idx_side[i].x, idx_center[j].y, idx_center[k].z)
+                dpos = (ti.Vector([i - 1, j - 0.5, k - 0.5]) - dist) * self.dx
+                w = w_side[i].x * w_center[j].y * w_center[k].z
+
+                self.conductivity_x[index] += w * mass_p * self.conductivity_p[p]
+                self.velocity_x[index] += w * (mass_p * velocity_x + (affine_x @ dpos))
+                self.mass_x[index] += w * mass_p
+
+            # for i, j, k in ti.static(ti.ndrange(4, 5, 4)):
+            for i, j, k in ti.static(ti.ndrange(3, 4, 3)):
+                index = (idx_center[i].x, idx_side[j].y, idx_center[k].z)
+                dpos = (ti.Vector([i - 0.5, j - 1, k - 0.5]) - dist) * self.dx
+                w = w_center[i].x * w_side[j].y * w_center[k].z
+
+                self.conductivity_y[index] += w * mass_p * self.conductivity_p[p]
+                self.velocity_y[index] += w * (mass_p * velocity_y + (affine_y @ dpos))
+                self.mass_y[index] += w * mass_p
+
+            # for i, j, k in ti.static(ti.ndrange(4, 4, 5)):
+            for i, j, k in ti.static(ti.ndrange(3, 3, 4)):
+                index = (idx_center[i].x, idx_center[j].y, idx_side[k].z)
+                dpos = (ti.Vector([i - 0.5, j - 0.5, k - 1]) - dist) * self.dx
+                w = w_center[i].x * w_center[j].y * w_side[k].z
+
+                self.conductivity_z[index] += w * mass_p * self.conductivity_p[p]
+                self.velocity_z[index] += w * (mass_p * velocity_z + (affine_z @ dpos))
+                self.mass_z[index] += w * mass_p
 
     @ti.kernel
     def momentum_to_velocity(self):
@@ -231,7 +342,8 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.velocity_x[i, j, k] /= mass_x
                 # Everything outside the visible grid belongs to the simulation boundary.
                 # We enforce a free-slip boundary condition:
-                if (i >= self.n_grid and self.velocity_x[i, j, k] > 0) or (i <= 0 and self.velocity_x[i, j, k] < 0):
+                # if (i >= self.n_grid and self.velocity_x[i, j, k] > 0) or (i <= 0 and self.velocity_x[i, j, k] < 0):
+                if (i > self.n_grid and self.velocity_x[i, j, k] > 0) or (i <= 0 and self.velocity_x[i, j, k] < 0):
                     self.velocity_x[i, j, k] = 0
 
         for i, j, k in self.mass_y:
@@ -240,7 +352,8 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.velocity_y[i, j, k] += self.gravity[None] * self.dt[None]
                 # Everything outside the visible grid belongs to the simulation boundary.
                 # We enforce a free-slip boundary condition:
-                if (j >= self.n_grid and self.velocity_y[i, j, k] > 0) or (j <= 0 and self.velocity_y[i, j, k] < 0):
+                # if (j >= self.n_grid and self.velocity_y[i, j, k] > 0) or (j <= 0 and self.velocity_y[i, j, k] < 0):
+                if (j > self.n_grid and self.velocity_y[i, j, k] > 0) or (j <= 0 and self.velocity_y[i, j, k] < 0):
                     self.velocity_y[i, j, k] = 0
 
         for i, j, k in self.mass_z:
@@ -248,7 +361,8 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.velocity_z[i, j, k] /= mass_z
                 # Everything outside the visible grid belongs to the simulation boundary.
                 # We enforce a free-slip boundary condition:
-                if (k >= self.n_grid and self.velocity_z[i, j, k] > 0) or (k <= 0 and self.velocity_z[i, j, k] < 0):
+                # if (k >= self.n_grid and self.velocity_z[i, j, k] > 0) or (k <= 0 and self.velocity_z[i, j, k] < 0):
+                if (k > self.n_grid and self.velocity_z[i, j, k] > 0) or (k <= 0 and self.velocity_z[i, j, k] < 0):
                     self.velocity_z[i, j, k] = 0
 
         for i, j, k in self.mass_c:
@@ -261,6 +375,24 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
     @ti.kernel
     def classify_cells(self):
+        for i, j, k in self.classification_c:
+            # Reset all the cells that don't belong to the colliding boundary:
+            is_colliding = not (0 <= i < self.n_grid)
+            is_colliding |= not (0 <= j < self.n_grid)
+            is_colliding |= not (0 <= k < self.n_grid)
+            if is_colliding:
+                self.classification_c[i, j, k] = Classification.Colliding
+            else:
+                self.classification_c[i, j, k] = Classification.Empty
+
+        for p in self.velocity_p:
+            # Find the nearest cell and set it to interior:
+            i, j, k = ti.floor(self.position_p[p] * self.inv_dx, dtype=ti.i32)  # pyright: ignore
+            if not self.is_colliding(i, j, k):  # pyright: ignore
+                self.classification_c[i, j, k] = Classification.Interior
+
+    @ti.kernel
+    def _classify_cells(self):
         # A face is colliding if the level set computed by any collision object is negative at the face center.
         # NOTE: collision objects are not implemented, we only care about the simulation boundary right now.
 
@@ -349,52 +481,110 @@ class TwoWay_MLSMPM(StaggeredSolver):
     @ti.kernel
     def grid_to_particle(self):
         for p in ti.ndrange(self.n_particles[None]):
-            # Lower left corner of the interpolation grid:
-            position_c = self.position_p[p] * self.inv_dx
-            base_x = ti.floor((position_c - ti.Vector([0.5, 1.0, 1.0])), dtype=ti.i32)
-            base_y = ti.floor((position_c - ti.Vector([1.0, 0.5, 1.0])), dtype=ti.i32)
-            base_z = ti.floor((position_c - ti.Vector([1.0, 1.0, 0.5])), dtype=ti.i32)
-            base_c = ti.floor((position_c - ti.Vector([1.0, 1.0, 1.0])), dtype=ti.i32)
-
-            # Distance between lower left corner and particle position:
-            dist_x = position_c - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
-            dist_y = position_c - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
-            dist_z = position_c - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
-            dist_c = position_c - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
-
-            # Quadratic kernels:
-            w_c = self.compute_quadratic_kernel(dist_c)
-            w_x = self.compute_quadratic_kernel(dist_x)
-            w_y = self.compute_quadratic_kernel(dist_y)
-            w_z = self.compute_quadratic_kernel(dist_z)
+            # # Lower left corner of the interpolation grid:
+            # position_c = self.position_p[p] * self.inv_dx
+            # base_x = ti.floor((position_c - ti.Vector([0.5, 1.0, 1.0])), dtype=ti.i32)
+            # base_y = ti.floor((position_c - ti.Vector([1.0, 0.5, 1.0])), dtype=ti.i32)
+            # base_z = ti.floor((position_c - ti.Vector([1.0, 1.0, 0.5])), dtype=ti.i32)
+            # base_c = ti.floor((position_c - ti.Vector([1.0, 1.0, 1.0])), dtype=ti.i32)
+            #
+            # # Distance between lower left corner and particle position:
+            # dist_x = position_c - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
+            # dist_y = position_c - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
+            # dist_z = position_c - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
+            # dist_c = position_c - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
+            #
+            # # Quadratic kernels:
+            # w_c = self.compute_quadratic_kernel(dist_c)
+            # w_x = self.compute_quadratic_kernel(dist_x)
+            # w_y = self.compute_quadratic_kernel(dist_y)
+            # w_z = self.compute_quadratic_kernel(dist_z)
 
             temperature = 0.0
             velocity = ti.Vector.zero(ti.f32, self.d)
+            # velocity_x = 0.0
+            # velocity_y = 0.0
+            # velocity_z = 0.0
             b_x = ti.Vector.zero(ti.f32, self.d)
             b_y = ti.Vector.zero(ti.f32, self.d)
             b_z = ti.Vector.zero(ti.f32, self.d)
-            for offset in ti.static(ti.grouped(ti.ndrange(*self.quadratic_neighbors))):
-                weight_c, weight_x, weight_y, weight_z = 1.0, 1.0, 1.0, 1.0
-                for i in ti.static(ti.ndrange(self.d)):
-                    weight_c *= w_c[offset[i]][i]
-                    weight_x *= w_x[offset[i]][i]
-                    weight_y *= w_y[offset[i]][i]
-                    weight_z *= w_z[offset[i]][i]
 
-                temperature += weight_c * self.temperature_c[base_c + offset]
-                velocity_x = weight_x * self.velocity_x[base_x + offset]
-                velocity_y = weight_y * self.velocity_y[base_y + offset]
-                velocity_z = weight_z * self.velocity_z[base_z + offset]
-                velocity += [velocity_x, velocity_y, velocity_z]
-                dpos_x = (ti.cast(offset, ti.f32) - dist_x) * self.dx
-                dpos_y = (ti.cast(offset, ti.f32) - dist_y) * self.dx
-                dpos_z = (ti.cast(offset, ti.f32) - dist_z) * self.dx
-                b_x += velocity_x * dpos_x
-                b_y += velocity_y * dpos_y
-                b_z += velocity_z * dpos_z
+            # for offset in ti.static(ti.grouped(ti.ndrange(*self.quadratic_neighbors))):
+            #     weight_c, weight_x, weight_y, weight_z = 1.0, 1.0, 1.0, 1.0
+            #     for i in ti.static(ti.ndrange(self.d)):
+            #         weight_c *= w_c[offset[i]][i]
+            #         weight_x *= w_x[offset[i]][i]
+            #         weight_y *= w_y[offset[i]][i]
+            #         weight_z *= w_z[offset[i]][i]
+            #
+            #     temperature += weight_c * self.temperature_c[base_c + offset]
+            #     velocity_x = weight_x * self.velocity_x[base_x + offset]
+            #     velocity_y = weight_y * self.velocity_y[base_y + offset]
+            #     velocity_z = weight_z * self.velocity_z[base_z + offset]
+            #     velocity += [velocity_x, velocity_y, velocity_z]
+            #     dpos_x = (ti.cast(offset, ti.f32) - dist_x) * self.dx
+            #     dpos_y = (ti.cast(offset, ti.f32) - dist_y) * self.dx
+            #     dpos_z = (ti.cast(offset, ti.f32) - dist_z) * self.dx
+            #     b_x += velocity_x * dpos_x
+            #     b_y += velocity_y * dpos_y
+            #     b_z += velocity_z * dpos_z
+
+            position_c = self.position_p[p] * self.inv_dx
+            base = ti.cast(ti.floor(position_c), dtype=ti.i32)
+            dist = position_c - base
+
+            # Index on sides
+            idx_side = [base - 1, base, base + 1, base + 2]
+            # Weight on sides
+            w_side = [
+                self.quadratic_kernel(1.0 + dist),
+                self.quadratic_kernel(dist),
+                self.quadratic_kernel(1.0 - dist),
+                self.quadratic_kernel(2.0 - dist),
+            ]
+
+            # Index on centers
+            idx_center = [base - 1, base, base + 1]
+            # Weight on centers
+            w_center = [
+                self.quadratic_kernel(0.5 + dist),
+                self.quadratic_kernel(ti.abs(0.5 - dist)),
+                self.quadratic_kernel(1.5 - dist),
+            ]
+
+            for i, j, k in ti.static(ti.ndrange(3, 3, 3)):
+                index = (idx_center[i].x, idx_center[j].y, idx_center[k].z)
+                dpos = (ti.Vector([i - 0.5, j - 0.5, k - 0.5]) - dist) * self.dx
+                w = w_center[i].x * w_center[j].y * w_center[k].z
+                temperature += w * self.temperature_c[index]
+
+            for i, j, k in ti.static(ti.ndrange(4, 3, 3)):
+                index = (idx_side[i].x, idx_center[j].y, idx_center[k].z)
+                dpos = (ti.Vector([i - 1, j - 0.5, k - 0.5]) - dist) * self.dx
+                w = w_side[i].x * w_center[j].y * w_center[k].z
+                velocity_x = w * self.velocity_x[index]
+                velocity[0] += velocity_x
+                b_x += velocity_x * dpos
+
+            for i, j, k in ti.static(ti.ndrange(3, 4, 3)):
+                index = (idx_center[i].x, idx_side[j].y, idx_center[k].z)
+                dpos = (ti.Vector([i - 0.5, j - 1, k - 0.5]) - dist) * self.dx
+                w = w_center[i].x * w_side[j].y * w_center[k].z
+                velocity_y = w * self.velocity_y[index]
+                velocity[1] += velocity_y
+                b_y += velocity_y * dpos
+
+            for i, j, k in ti.static(ti.ndrange(3, 3, 4)):
+                index = (idx_center[i].x, idx_center[j].y, idx_side[k].z)
+                dpos = (ti.Vector([i - 0.5, j - 0.5, k - 1]) - dist) * self.dx
+                w = w_center[i].x * w_center[j].y * w_side[k].z
+                velocity_z = w * self.velocity_z[index]
+                velocity[2] += velocity_z
+                b_z += velocity_z * dpos
 
             self.B_p[p] = ti.Matrix([[b_x[0], b_y[0], b_z[0]], [b_x[1], b_y[1], b_z[1]], [b_x[2], b_y[2], b_z[2]]])
             self.position_p[p] += self.dt[None] * velocity
+            self.position_p[p] = tm.clamp(self.position_p[p], 0, 1)
             self.velocity_p[p] = velocity
 
             # Initially, we allow each particle to freely change its temperature according to the heat equation.
@@ -432,5 +622,5 @@ class TwoWay_MLSMPM(StaggeredSolver):
         self.classify_cells()
         self.compute_volumes()
         self.pressure_solver.solve()
-        self.heat_solver.solve()
+        # self.heat_solver.solve()
         self.grid_to_particle()

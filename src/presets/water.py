@@ -5,16 +5,16 @@ water_presets = [
     Configuration(
         name="Waterjet",
         information="Water",
-        dt=5e-3,
+        dt=3e-3,
         geometries=[
             *[
                 Circle(
                     material=Water,  # pyright: ignore
                     is_continuous=True,
                     frame_threshold=i,
-                    center=(0.5, 0.98, 0.5),
+                    center=(0.5, 0.99, 0.5),
                     velocity=(0, -3, 0),
-                    radius=0.04,
+                    radius=0.05,
                 )
                 for i in range(1, 201)
             ],
@@ -23,9 +23,9 @@ water_presets = [
                     material=Water,  # pyright: ignore
                     is_continuous=True,
                     frame_threshold=i,
-                    center=(0.5, 0.975, 0.5),
+                    center=(0.5, 0.985, 0.5),
                     velocity=(0, -3, 0),
-                    radius=0.04,
+                    radius=0.05,
                 )
                 for i in range(2, 201)
             ],
@@ -34,9 +34,9 @@ water_presets = [
                     material=Water,  # pyright: ignore
                     is_continuous=True,
                     frame_threshold=i,
-                    center=(0.5, 0.97, 0.5),
+                    center=(0.5, 0.98, 0.5),
                     velocity=(0, -3, 0),
-                    radius=0.04,
+                    radius=0.05,
                 )
                 for i in range(3, 201)
             ],
