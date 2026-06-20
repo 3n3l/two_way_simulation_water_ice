@@ -173,16 +173,17 @@ class TwoWay_MLSMPM(StaggeredSolver):
             affine_z = affine @ ti.Vector([0, 0, 1])  # pyright: ignore
 
             # Lower left corner of the interpolation grid:
-            base_x = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.0, 1.5, 1.5])), dtype=ti.i32)
-            base_y = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.5, 1.0, 1.5])), dtype=ti.i32)
-            base_z = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.5, 1.5, 1.0])), dtype=ti.i32)
-            base_c = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([2.0, 2.0, 2.0])), dtype=ti.i32)
+            position_c = self.position_p[p] * self.inv_dx
+            base_x = ti.floor((position_c - ti.Vector([1.0, 1.5, 1.5])), dtype=ti.i32)
+            base_y = ti.floor((position_c - ti.Vector([1.5, 1.0, 1.5])), dtype=ti.i32)
+            base_z = ti.floor((position_c - ti.Vector([1.5, 1.5, 1.0])), dtype=ti.i32)
+            base_c = ti.floor((position_c - ti.Vector([2.0, 2.0, 2.0])), dtype=ti.i32)
 
             # Distance between lower left corner and particle position:
-            dist_x = self.position_p[p] * self.inv_dx - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
-            dist_y = self.position_p[p] * self.inv_dx - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
-            dist_z = self.position_p[p] * self.inv_dx - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
-            dist_c = self.position_p[p] * self.inv_dx - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
+            dist_x = position_c - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
+            dist_y = position_c - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
+            dist_z = position_c - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
+            dist_c = position_c - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
 
             # Cubic kernels:
             w_x = self.compute_cubic_kernel(dist_x)
@@ -349,16 +350,17 @@ class TwoWay_MLSMPM(StaggeredSolver):
     def grid_to_particle(self):
         for p in ti.ndrange(self.n_particles[None]):
             # Lower left corner of the interpolation grid:
-            base_x = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([0.5, 1.0, 1.0])), dtype=ti.i32)
-            base_y = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.0, 0.5, 1.0])), dtype=ti.i32)
-            base_z = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.0, 1.0, 0.5])), dtype=ti.i32)
-            base_c = ti.floor((self.position_p[p] * self.inv_dx - ti.Vector([1.0, 1.0, 1.0])), dtype=ti.i32)
+            position_c = self.position_p[p] * self.inv_dx
+            base_x = ti.floor((position_c - ti.Vector([0.5, 1.0, 1.0])), dtype=ti.i32)
+            base_y = ti.floor((position_c - ti.Vector([1.0, 0.5, 1.0])), dtype=ti.i32)
+            base_z = ti.floor((position_c - ti.Vector([1.0, 1.0, 0.5])), dtype=ti.i32)
+            base_c = ti.floor((position_c - ti.Vector([1.0, 1.0, 1.0])), dtype=ti.i32)
 
             # Distance between lower left corner and particle position:
-            dist_x = self.position_p[p] * self.inv_dx - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
-            dist_y = self.position_p[p] * self.inv_dx - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
-            dist_z = self.position_p[p] * self.inv_dx - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
-            dist_c = self.position_p[p] * self.inv_dx - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
+            dist_x = position_c - ti.cast(base_x, ti.f32) - ti.Vector([0.0, 0.5, 0.5])
+            dist_y = position_c - ti.cast(base_y, ti.f32) - ti.Vector([0.5, 0.0, 0.5])
+            dist_z = position_c - ti.cast(base_z, ti.f32) - ti.Vector([0.5, 0.5, 0.0])
+            dist_c = position_c - ti.cast(base_c, ti.f32) - ti.Vector([0.5, 0.5, 0.5])
 
             # Quadratic kernels:
             w_c = self.compute_quadratic_kernel(dist_c)
@@ -384,12 +386,12 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 velocity_y = weight_y * self.velocity_y[base_y + offset]
                 velocity_z = weight_z * self.velocity_z[base_z + offset]
                 velocity += [velocity_x, velocity_y, velocity_z]
-                x_dpos = (ti.cast(offset, ti.f32) - dist_x) * self.dx
-                y_dpos = (ti.cast(offset, ti.f32) - dist_y) * self.dx
-                z_dpos = (ti.cast(offset, ti.f32) - dist_z) * self.dx
-                b_x += velocity_x * x_dpos
-                b_y += velocity_y * y_dpos
-                b_z += velocity_z * z_dpos
+                dpos_x = (ti.cast(offset, ti.f32) - dist_x) * self.dx
+                dpos_y = (ti.cast(offset, ti.f32) - dist_y) * self.dx
+                dpos_z = (ti.cast(offset, ti.f32) - dist_z) * self.dx
+                b_x += velocity_x * dpos_x
+                b_y += velocity_y * dpos_y
+                b_z += velocity_z * dpos_z
 
             self.B_p[p] = ti.Matrix([[b_x[0], b_y[0], b_z[0]], [b_x[1], b_y[1], b_z[1]], [b_x[2], b_y[2], b_z[2]]])
             self.position_p[p] += self.dt[None] * velocity
