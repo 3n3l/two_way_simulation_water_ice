@@ -395,6 +395,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
 
             self.B_p[p] = ti.Matrix([[b_x[0], b_y[0], b_z[0]], [b_x[1], b_y[1], b_z[1]], [b_x[2], b_y[2], b_z[2]]])
             self.position_p[p] += self.dt[None] * velocity
+            self.position_p[p] = tm.clamp(self.position_p[p], 0, 1)
             self.velocity_p[p] = velocity
 
             # Initially, we allow each particle to freely change its temperature according to the heat equation.
