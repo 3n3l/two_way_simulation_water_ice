@@ -231,7 +231,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.velocity_x[i, j, k] /= mass_x
                 # Everything outside the visible grid belongs to the simulation boundary.
                 # We enforce a free-slip boundary condition:
-                if (i >= self.n_grid and self.velocity_x[i, j, k] > 0) or (i <= 0 and self.velocity_x[i, j, k] < 0):
+                if (i > self.n_grid and self.velocity_x[i, j, k] > 0) or (i <= 0 and self.velocity_x[i, j, k] < 0):
                     self.velocity_x[i, j, k] = 0
 
         for i, j, k in self.mass_y:
@@ -240,7 +240,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.velocity_y[i, j, k] += self.gravity[None] * self.dt[None]
                 # Everything outside the visible grid belongs to the simulation boundary.
                 # We enforce a free-slip boundary condition:
-                if (j >= self.n_grid and self.velocity_y[i, j, k] > 0) or (j <= 0 and self.velocity_y[i, j, k] < 0):
+                if (j > self.n_grid and self.velocity_y[i, j, k] > 0) or (j <= 0 and self.velocity_y[i, j, k] < 0):
                     self.velocity_y[i, j, k] = 0
 
         for i, j, k in self.mass_z:
@@ -248,7 +248,7 @@ class TwoWay_MLSMPM(StaggeredSolver):
                 self.velocity_z[i, j, k] /= mass_z
                 # Everything outside the visible grid belongs to the simulation boundary.
                 # We enforce a free-slip boundary condition:
-                if (k >= self.n_grid and self.velocity_z[i, j, k] > 0) or (k <= 0 and self.velocity_z[i, j, k] < 0):
+                if (k > self.n_grid and self.velocity_z[i, j, k] > 0) or (k <= 0 and self.velocity_z[i, j, k] < 0):
                     self.velocity_z[i, j, k] = 0
 
         for i, j, k in self.mass_c:
